@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="agora">
+<title>agora.</title>
+<meta name="theme-color" content="#14120F" media="(prefers-color-scheme:dark)">
+<meta name="theme-color" content="#F4EFE6" media="(prefers-color-scheme:light)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#14120F; --paper-2:#241F1A;
+  --surface:rgba(255,255,255,.045); --surface-2:rgba(255,255,255,.07);
+  --ink:#F2EBE0; --ink-soft:#9A9086;
+  --accent:#F2703F; --accent-2:#5FAE93;
+  --line:rgba(242,235,224,.13);
+  --hero-bg:#000; --hero-fg:#F2EBE0; --hero-dim:rgba(242,235,224,.6);
+  --sel-bg:#F2EBE0; --sel-fg:#14120F;
+  --nav-bg:rgba(20,18,15,.9);
+  --sheet:#1C1915;
+  --noise:.14; --radius:18px;
+}
+@media (prefers-color-scheme:light){
+  :root{
+    --paper:#F4EFE6; --paper-2:#EBE3D6;
+    --surface:rgba(255,255,255,.5); --surface-2:rgba(255,255,255,.62);
+    --ink:#1E1B17; --ink-soft:#6B6257;
+    --accent:#D4522A; --accent-2:#2F5D50;
+    --line:rgba(30,27,23,.12);
+    --hero-bg:#1E1B17; --hero-fg:#F4EFE6; --hero-dim:rgba(244,239,230,.66);
+    --sel-bg:#1E1B17; --sel-fg:#F4EFE6;
+    --nav-bg:rgba(244,239,230,.93);
+    --sheet:#FBF7F0;
+    --noise:.35;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);color:var(--ink);font-family:'Karla',sans-serif;min-height:100vh;
+  background-image:
+    radial-gradient(120% 80% at 100% 0%, rgba(242,112,63,.16), transparent 55%),
+    radial-gradient(90% 60% at 0% 100%, rgba(95,174,147,.12), transparent 60%);
+  background-attachment:fixed;
+  -webkit-user-select:none;user-select:none;
+}
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;opacity:var(--noise);z-index:99;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
+}
+.app{max-width:430px;margin:0 auto;padding:calc(22px + env(safe-area-inset-top)) 20px 120px;position:relative;z-index:1}
+input,textarea,button,select{font-family:'Karla',sans-serif;color:inherit}
+input,textarea{-webkit-user-select:text;user-select:text}
+
+.top{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:26px}
+.brand{font-family:'Fraunces',serif;font-weight:900;font-size:30px;letter-spacing:-.02em;line-height:.95}
+.brand span{color:var(--accent)}
+.date{font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.12em;text-align:right;line-height:1.5}
+
+.screen{display:none;animation:rise .4s cubic-bezier(.2,.8,.2,1) both}
+.screen.on{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+h2.title{font-family:'Fraunces',serif;font-weight:600;font-size:15px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-soft);margin:0 0 14px;display:flex;align-items:center;gap:10px}
+.back{background:none;border:none;padding:0;font-size:18px;color:var(--ink-soft);cursor:pointer}
+
+.weather{display:flex;align-items:center;gap:14px;padding:14px 16px;margin-bottom:24px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+.weather .deg{font-family:'Fraunces',serif;font-size:34px;font-weight:600;line-height:1;min-width:56px}
+.weather .meta{font-size:13px;color:var(--ink-soft);line-height:1.45}
+.weather .meta b{color:var(--ink);font-weight:700}
+
+.list-card{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);padding:16px 18px;margin-bottom:12px;display:flex;align-items:center;gap:14px;transition:transform .18s;cursor:pointer}
+.list-card:active{transform:scale(.985)}
+.emoji{font-size:26px;width:44px;height:44px;display:grid;place-items:center;border-radius:14px;background:var(--paper-2);flex:none}
+.list-name{font-weight:700;font-size:17px;letter-spacing:-.01em}
+.list-sub{font-size:13px;color:var(--ink-soft);margin-top:2px}
+.count{margin-left:auto;font-family:'Fraunces',serif;font-size:22px;font-weight:600;color:var(--accent)}
+.add{width:100%;padding:15px;border:1.5px dashed var(--line);border-radius:var(--radius);background:none;font-size:15px;font-weight:700;color:var(--ink-soft);margin-top:6px;cursor:pointer}
+
+.task{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--line);align-items:flex-start}
+.box{width:22px;height:22px;border:1.5px solid var(--ink-soft);border-radius:7px;flex:none;margin-top:1px;cursor:pointer;display:grid;place-items:center;font-size:13px;color:transparent}
+.task.done .box{background:var(--accent-2);border-color:var(--accent-2);color:#0D1B16}
+.task.done .task-text{text-decoration:line-through;color:var(--ink-soft)}
+.task-body{flex:1;cursor:pointer}
+.task-text{font-size:16px;line-height:1.35}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;padding:4px 9px;border-radius:999px;background:var(--paper-2);color:var(--ink-soft)}
+.tag.hot{background:rgba(242,112,63,.16);color:var(--accent)}
+.tag.cool{background:rgba(95,174,147,.16);color:var(--accent-2)}
+.tag.due{background:rgba(242,112,63,.16);color:var(--accent)}
+.del{background:none;border:none;color:var(--ink-soft);opacity:.5;font-size:16px;padding:2px 4px;cursor:pointer}
+
+.hero{border-radius:26px;padding:30px 24px;background:var(--hero-bg);color:var(--hero-fg);position:relative;overflow:hidden;margin-bottom:22px}
+.hero::before{content:'';position:absolute;width:260px;height:260px;right:-90px;top:-110px;border-radius:50%;background:radial-gradient(circle,rgba(242,112,63,.75),transparent 70%)}
+.hero h3{font-family:'Fraunces',serif;font-weight:900;font-size:27px;line-height:1.1;margin:0 0 8px;letter-spacing:-.02em;position:relative}
+.hero p{margin:0;font-size:14px;color:var(--hero-dim);position:relative;line-height:1.5}
+.cta{width:100%;margin-top:22px;padding:17px;border:none;border-radius:16px;background:var(--accent);color:#1A0B05;font-family:'Fraunces',serif;font-weight:600;font-size:18px;position:relative;box-shadow:0 10px 28px rgba(242,112,63,.28);cursor:pointer}
+.cta:active{transform:translateY(1px)}
+
+.q{margin-bottom:22px}
+.q-label{font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-soft);font-weight:700;margin-bottom:10px}
+.opts{display:flex;gap:8px;flex-wrap:wrap}
+.opt{padding:11px 16px;border:1.5px solid var(--line);border-radius:999px;background:var(--surface);font-size:14px;font-weight:500;cursor:pointer}
+.opt.sel{background:var(--sel-bg);color:var(--sel-fg);border-color:var(--sel-bg)}
+
+.result{border:1px solid var(--line);border-radius:26px;background:var(--surface-2);padding:28px 24px;text-align:center;box-shadow:0 18px 46px -26px rgba(0,0,0,.75)}
+.result .from{font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);font-weight:700}
+.result h3{font-family:'Fraunces',serif;font-weight:600;font-size:27px;line-height:1.18;margin:12px 0 14px;letter-spacing:-.02em}
+.why{font-size:14px;color:var(--ink-soft);line-height:1.55;padding-top:14px;border-top:1px solid var(--line);margin-top:18px;text-align:left}
+.why b{color:var(--ink)}
+.row{display:flex;gap:10px;margin-top:18px}
+.btn{flex:1;padding:14px;border-radius:14px;font-size:15px;font-weight:700;border:1.5px solid var(--ink);cursor:pointer}
+.btn.ghost{background:none;color:var(--ink)}
+.btn.solid{background:var(--accent-2);border-color:var(--accent-2);color:#0D1B16}
+.empty{text-align:center;color:var(--ink-soft);font-size:15px;line-height:1.6;padding:40px 10px}
+
+nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--nav-bg);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:10px 20px calc(14px + env(safe-area-inset-bottom))}
+.nav-in{max-width:430px;margin:0 auto;display:flex}
+.nav-btn{flex:1;background:none;border:none;padding:8px 0;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer}
+.nav-btn .ic{font-size:19px;line-height:1}
+.nav-btn.on{color:var(--accent)}
+
+/* folha de edição */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;opacity:0;pointer-events:none;transition:opacity .25s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;background:var(--sheet);border-radius:26px 26px 0 0;padding:22px 20px calc(26px + env(safe-area-inset-bottom));transform:translateY(102%);transition:transform .3s cubic-bezier(.2,.8,.2,1);max-height:92vh;overflow-y:auto;border-top:1px solid var(--line)}
+.sheet.on{transform:none}
+.sheet-in{max-width:430px;margin:0 auto}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 18px}
+.field{width:100%;padding:15px 16px;border:1.5px solid var(--line);border-radius:14px;background:var(--surface);font-size:17px;margin-bottom:18px}
+.field:focus{outline:none;border-color:var(--accent)}
+.emoji-pick{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.emoji-pick button{width:46px;height:46px;font-size:22px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);cursor:pointer}
+.emoji-pick button.sel{border-color:var(--accent);background:rgba(242,112,63,.14)}
+.save{width:100%;padding:16px;border:none;border-radius:16px;background:var(--accent);color:#1A0B05;font-family:'Fraunces',serif;font-weight:600;font-size:17px;cursor:pointer}
+.toast{position:fixed;bottom:100px;left:50%;transform:translate(-50%,20px);background:var(--sel-bg);color:var(--sel-fg);padding:12px 20px;border-radius:999px;font-size:14px;font-weight:700;z-index:80;opacity:0;transition:.25s;pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.tools{display:flex;gap:8px;margin-top:26px}
+
+/* caixa de entrada */
+.composer{border:1px solid var(--line);border-radius:22px;background:var(--surface);padding:14px;margin-bottom:24px}
+.composer textarea{width:100%;border:none;background:none;font-size:16px;line-height:1.45;resize:none;min-height:76px;outline:none}
+.comp-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+.icon-btn{width:44px;height:44px;border-radius:14px;border:1.5px solid var(--line);background:none;font-size:19px;cursor:pointer;flex:none}
+.send{flex:1;padding:13px;border:none;border-radius:14px;background:var(--accent);color:#1A0B05;font-family:'Fraunces',serif;font-weight:600;font-size:16px;cursor:pointer}
+.send:disabled{opacity:.45}
+.preview{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13px;color:var(--ink-soft)}
+.preview img{width:52px;height:52px;object-fit:cover;border-radius:10px}
+.item{border:1px solid var(--line);border-radius:20px;background:var(--surface);padding:16px 18px;margin-bottom:12px}
+.item .src{font-size:12px;color:var(--ink-soft);line-height:1.5;margin-bottom:10px;word-break:break-word}
+.item .prop{font-size:17px;font-weight:700;line-height:1.35}
+.item .dest{font-size:13px;color:var(--accent);font-weight:700;margin-top:6px}
+.item .row{margin-top:14px}
+.item .btn{padding:11px;font-size:14px}
+.item .src .mini{width:40px;height:40px;object-fit:cover;border-radius:8px;float:left;margin:0 10px 4px 0}
+.quando{opacity:.6}
+.badge{background:var(--accent);color:#1A0B05;font-size:10px;font-weight:700;border-radius:999px;padding:1px 5px;margin-left:2px;vertical-align:super}
+.dots{display:inline-block;width:34px;text-align:left}
+.dots::after{content:'…';animation:blink 1.2s infinite}
+@keyframes blink{0%,100%{opacity:.3}50%{opacity:1}}
+.aviso{font-size:13px;color:var(--ink-soft);line-height:1.55;border:1px dashed var(--line);border-radius:16px;padding:14px;margin-bottom:20px}
+.tools button{flex:1;padding:12px;border:1px solid var(--line);border-radius:12px;background:none;color:var(--ink-soft);font-size:13px;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="top">
+    <div class="brand">agora<span>.</span></div>
+    <div class="date" id="hoje"></div>
+  </div>
+
+  <!-- LISTAS -->
+  <section class="screen on" id="s-listas">
+    <div class="weather" id="clima">
+      <div class="deg">—</div>
+      <div class="meta">Carregando o clima…</div>
+    </div>
+    <h2 class="title">Minhas listas</h2>
+    <div id="listas"></div>
+    <button class="add" onclick="abrirLista()">+&nbsp; Nova lista</button>
+    <div class="tools">
+      <button onclick="exportar()">Exportar backup</button>
+      <button onclick="importar()">Importar</button>
+      <button onclick="abrirChave()">Chave da IA</button>
+    </div>
+  </section>
+
+  <!-- TAREFAS -->
+  <section class="screen" id="s-lista">
+    <h2 class="title"><button class="back" onclick="ir('s-listas')">←</button><span id="lista-nome"></span></h2>
+    <div id="tarefas"></div>
+    <button class="add" onclick="abrirTarefa()">+&nbsp; Nova tarefa</button>
+  </section>
+
+
+  <!-- CAIXA -->
+  <section class="screen" id="s-caixa">
+    <h2 class="title">Caixa de entrada</h2>
+    <div class="aviso" id="sem-chave" style="display:none">
+      Precisa de uma chave da API pra funcionar. Toca em <b>Chave da IA</b> na tela de listas.
+    </div>
+    <div class="composer">
+      <textarea id="c-texto" placeholder="Cola um link, escreve uma ideia, ou manda uma foto…"></textarea>
+      <div class="preview" id="c-preview" style="display:none"></div>
+      <div class="comp-row">
+        <button class="icon-btn" onclick="document.getElementById('c-file').click()">📷</button>
+        <button class="send" id="c-send" onclick="processar()">Processar</button>
+      </div>
+    </div>
+    <input type="file" id="c-file" accept="image/*" style="display:none">
+    <div id="caixa-itens"></div>
+  </section>
+
+  <!-- AGORA -->
+  <section class="screen" id="s-agora">
+    <div class="hero">
+      <h3>O que eu faço<br>agora?</h3>
+      <p>Responde três coisas rápidas e eu escolho por você.</p>
+    </div>
+    <div class="q">
+      <div class="q-label">Quanto tempo você tem?</div>
+      <div class="opts" data-g="tempo">
+        <button class="opt" data-v="15">15 min</button>
+        <button class="opt" data-v="30">30 min</button>
+        <button class="opt sel" data-v="60">1 hora</button>
+        <button class="opt" data-v="240">2h+</button>
+      </div>
+    </div>
+    <div class="q">
+      <div class="q-label">Tá a fim de quê?</div>
+      <div class="opts" data-g="tipo">
+        <button class="opt" data-v="lazer">Lazer</button>
+        <button class="opt" data-v="tarefa">Resolver algo</button>
+        <button class="opt sel" data-v="qualquer">Tanto faz</button>
+      </div>
+    </div>
+    <div class="q">
+      <div class="q-label">Onde?</div>
+      <div class="opts" data-g="local">
+        <button class="opt sel" data-v="casa">Em casa</button>
+        <button class="opt" data-v="rua">Posso sair</button>
+      </div>
+    </div>
+    <button class="cta" onclick="sugerir()">Me dá uma sugestão →</button>
+  </section>
+
+  <!-- RESULTADO -->
+  <section class="screen" id="s-result">
+    <div id="res"></div>
+  </section>
+</div>
+
+<nav>
+  <div class="nav-in">
+    <button class="nav-btn on" data-s="s-listas"><span class="ic">☰</span>Listas</button>
+    <button class="nav-btn" data-s="s-caixa"><span class="ic">⌁</span>Caixa</button>
+    <button class="nav-btn" data-s="s-agora"><span class="ic">✦</span>Agora</button>
+  </div>
+</nav>
+
+<div class="scrim" id="scrim" onclick="fechar()"></div>
+
+<!-- folha: nova lista -->
+<div class="sheet" id="sheet-lista"><div class="sheet-in">
+  <div class="grab"></div>
+  <input class="field" id="l-nome" placeholder="Nome da lista" autocomplete="off">
+  <div class="emoji-pick" id="l-emoji"></div>
+  <button class="save" onclick="salvarLista()">Criar lista</button>
+</div></div>
+
+<!-- folha: nova tarefa -->
+<div class="sheet" id="sheet-tarefa"><div class="sheet-in">
+  <div class="grab"></div>
+  <input class="field" id="t-texto" placeholder="O que precisa ser feito?" autocomplete="off">
+  <div class="q">
+    <div class="q-label">Quanto tempo leva</div>
+    <div class="opts" data-g="t-min">
+      <button class="opt" data-v="15">15 min</button>
+      <button class="opt sel" data-v="30">30 min</button>
+      <button class="opt" data-v="60">1h</button>
+      <button class="opt" data-v="120">2h</button>
+      <button class="opt" data-v="180">3h+</button>
+    </div>
+  </div>
+  <div class="q">
+    <div class="q-label">Onde</div>
+    <div class="opts" data-g="t-local">
+      <button class="opt sel" data-v="casa">Casa</button>
+      <button class="opt" data-v="rua">Rua</button>
+      <button class="opt" data-v="qualquer">Tanto faz</button>
+    </div>
+  </div>
+  <div class="q">
+    <div class="q-label">Tipo</div>
+    <div class="opts" data-g="t-tipo">
+      <button class="opt sel" data-v="tarefa">Obrigação</button>
+      <button class="opt" data-v="lazer">Lazer</button>
+    </div>
+  </div>
+  <div class="q" id="q-clima" style="display:none">
+    <div class="q-label">O clima atrapalha?</div>
+    <div class="opts" data-g="t-clima">
+      <button class="opt sel" data-v="0">Não</button>
+      <button class="opt" data-v="1">Sim, só com tempo bom</button>
+    </div>
+  </div>
+  <div class="q">
+    <div class="q-label">Prazo (opcional)</div>
+    <input class="field" type="date" id="t-prazo">
+  </div>
+  <button class="save" onclick="salvarTarefa()">Salvar tarefa</button>
+</div></div>
+
+
+<!-- folha: chave da IA -->
+<div class="sheet" id="sheet-chave"><div class="sheet-in">
+  <div class="grab"></div>
+  <div class="q-label">Chave da API Anthropic</div>
+  <input class="field" id="k-chave" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+  <div class="aviso">Fica salva só neste iPhone, no armazenamento do navegador. Nunca vai pro GitHub. Pega a sua em console.anthropic.com → API Keys.</div>
+  <button class="save" onclick="salvarChave()">Salvar</button>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------- dados ---------------- */
+const K='agora.dados.v1';
+let D=JSON.parse(localStorage.getItem(K)||'null');
+if(!D){
+  D={listas:[
+    {id:'l1',nome:'Casa',icone:'🏠',pad:{local:'casa',tipo:'tarefa'}},
+    {id:'l2',nome:'Trabalho',icone:'💼',pad:{local:'qualquer',tipo:'tarefa'}},
+    {id:'l3',nome:'Livros',icone:'📚',pad:{local:'casa',tipo:'lazer',minutos:60}},
+    {id:'l4',nome:'Filmes',icone:'🎬',pad:{local:'casa',tipo:'lazer',minutos:120}},
+    {id:'l5',nome:'Comprar',icone:'🛒',pad:{local:'rua',tipo:'tarefa',minutos:60}}
+  ],tarefas:[]};
+  salvar();
+}
+function salvar(){localStorage.setItem(K,JSON.stringify(D))}
+const uid=()=>Math.random().toString(36).slice(2,9);
+const hoje=()=>new Date().setHours(0,0,0,0);
+
+/* ---------------- clima ---------------- */
+let CLIMA={temp:null,chuva:false,frio:false,desc:'—',ok:false};
+async function carregarClima(){
+  const pos=await new Promise(r=>{
+    if(!navigator.geolocation) return r(null);
+    navigator.geolocation.getCurrentPosition(p=>r(p),()=>r(null),{timeout:6000,maximumAge:9e5});
+  });
+  const lat=pos?pos.coords.latitude:-23.56, lon=pos?pos.coords.longitude:-46.69;
+  try{
+    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,weather_code&timezone=auto`);
+    const j=await r.json(), c=j.current;
+    CLIMA={temp:Math.round(c.temperature_2m),chuva:c.precipitation>0.1||(c.weather_code>=51&&c.weather_code<=99),
+           frio:c.temperature_2m<16,ok:true,desc:descCodigo(c.weather_code)};
+    localStorage.setItem('agora.clima',JSON.stringify({...CLIMA,quando:Date.now()}));
+  }catch(e){
+    const c=JSON.parse(localStorage.getItem('agora.clima')||'null');
+    if(c) CLIMA=c;
+  }
+  pintarClima();
+}
+function descCodigo(w){
+  if(w===0)return'Céu limpo'; if(w<=3)return'Parcialmente nublado';
+  if(w<=48)return'Nublado'; if(w<=57)return'Garoa';
+  if(w<=67)return'Chuva'; if(w<=77)return'Neve';
+  if(w<=82)return'Pancadas de chuva'; return'Tempestade';
+}
+function pintarClima(){
+  const el=document.getElementById('clima');
+  if(!CLIMA.ok&&CLIMA.temp===null){el.innerHTML='<div class="deg">—</div><div class="meta">Sem clima agora<br>As sugestões seguem funcionando</div>';return}
+  const dica=CLIMA.chuva?'Dia de ficar em casa':CLIMA.frio?'Frio lá fora':'Bom pra sair';
+  el.innerHTML=`<div class="deg">${CLIMA.temp}°</div><div class="meta"><b>${CLIMA.desc}</b><br>${dica}</div>`;
+}
+
+/* ---------------- navegação ---------------- */
+function ir(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); ir(b.dataset.s);
+});
+document.body.addEventListener('click',e=>{
+  const o=e.target.closest('.opt'); if(!o)return;
+  const g=o.parentElement; g.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));
+  o.classList.add('sel');
+  if(g.dataset.g==='t-local') document.getElementById('q-clima').style.display=(o.dataset.v==='casa')?'none':'block';
+});
+const pega=g=>document.querySelector(`[data-g="${g}"] .opt.sel`).dataset.v;
+
+/* ---------------- render ---------------- */
+function pintarListas(){
+  const el=document.getElementById('listas');
+  el.innerHTML=D.listas.map(l=>{
+    const t=D.tarefas.filter(x=>x.listaId===l.id&&!x.feitoEm);
+    const urg=t.filter(x=>x.prazo&&new Date(x.prazo).setHours(0,0,0,0)-hoje()<=3*864e5).length;
+    const sub=t.length===0?'vazia':urg?`${urg} com prazo perto`:`${t.filter(x=>x.minutos<=30).length} rápidas`;
+    return `<div class="list-card" onclick="abrir('${l.id}')"><div class="emoji">${l.icone}</div>
+      <div><div class="list-name">${esc(l.nome)}</div><div class="list-sub">${sub}</div></div>
+      <div class="count">${t.length}</div></div>`;
+  }).join('');
+}
+let listaAtual=null;
+function abrir(id){
+  listaAtual=id;
+  const l=D.listas.find(x=>x.id===id);
+  document.getElementById('lista-nome').textContent=`${l.icone} ${l.nome}`;
+  pintarTarefas(); ir('s-lista');
+}
+function pintarTarefas(){
+  const ts=D.tarefas.filter(t=>t.listaId===listaAtual)
+    .sort((a,b)=>(a.feitoEm?1:0)-(b.feitoEm?1:0));
+  const el=document.getElementById('tarefas');
+  if(!ts.length){el.innerHTML='<div class="empty">Nada aqui ainda.<br>Adiciona a primeira tarefa abaixo.</div>';return}
+  el.innerHTML=ts.map(t=>`
+    <div class="task ${t.feitoEm?'done':''}">
+      <div class="box" onclick="alternar('${t.id}')">✓</div>
+      <div class="task-body"><div class="task-text">${esc(t.texto)}</div>
+        <div class="tags">${tags(t)}</div></div>
+      <button class="del" onclick="apagar('${t.id}')">✕</button>
+    </div>`).join('');
+}
+function tags(t){
+  const m=t.minutos>=60?(t.minutos/60)+'h':t.minutos+'min';
+  let h=`<span class="tag">${m}</span><span class="tag cool">${t.local}</span><span class="tag">${t.tipo==='lazer'?'lazer':'obrigação'}</span>`;
+  if(t.climaImporta) h+='<span class="tag hot">depende do clima</span>';
+  if(t.prazo){
+    const d=Math.round((new Date(t.prazo).setHours(0,0,0,0)-hoje())/864e5);
+    h+=`<span class="tag ${d<=3?'due':''}">${d<0?'atrasada':d===0?'hoje':d===1?'amanhã':'em '+d+'d'}</span>`;
+  }
+  return h;
+}
+const esc=s=>s.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+function alternar(id){const t=D.tarefas.find(x=>x.id===id);t.feitoEm=t.feitoEm?null:Date.now();salvar();pintarTarefas();pintarListas()}
+function apagar(id){D.tarefas=D.tarefas.filter(x=>x.id!==id);salvar();pintarTarefas();pintarListas()}
+
+/* ---------------- folhas ---------------- */
+const EMOJIS=['🏠','💼','📚','🎬','🛒','🏃','🎧','🍳','🌱','🧹','✈️','💡'];
+function abrirLista(){
+  document.getElementById('l-nome').value='';
+  document.getElementById('l-emoji').innerHTML=EMOJIS.map((e,i)=>`<button class="${i?'':'sel'}" onclick="escolherEmoji(this)">${e}</button>`).join('');
+  mostrar('sheet-lista');
+}
+function escolherEmoji(b){b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('sel'));b.classList.add('sel')}
+function salvarLista(){
+  const n=document.getElementById('l-nome').value.trim(); if(!n)return;
+  const e=document.querySelector('#l-emoji button.sel').textContent;
+  D.listas.push({id:uid(),nome:n,icone:e,pad:{}}); salvar(); pintarListas(); fechar(); aviso('Lista criada');
+}
+function abrirTarefa(){
+  const l=D.listas.find(x=>x.id===listaAtual), p=l.pad||{};
+  document.getElementById('t-texto').value='';
+  document.getElementById('t-prazo').value='';
+  marcar('t-min',p.minutos||30); marcar('t-local',p.local||'casa'); marcar('t-tipo',p.tipo||'tarefa'); marcar('t-clima','0');
+  document.getElementById('q-clima').style.display=(p.local&&p.local!=='casa')?'block':'none';
+  mostrar('sheet-tarefa');
+  setTimeout(()=>document.getElementById('t-texto').focus(),320);
+}
+function marcar(g,v){
+  document.querySelectorAll(`[data-g="${g}"] .opt`).forEach(o=>o.classList.toggle('sel',o.dataset.v==String(v)));
+}
+function salvarTarefa(){
+  const txt=document.getElementById('t-texto').value.trim(); if(!txt)return;
+  const local=pega('t-local');
+  D.tarefas.push({id:uid(),texto:txt,listaId:listaAtual,
+    minutos:+pega('t-min'),local,tipo:pega('t-tipo'),
+    climaImporta:local!=='casa'&&pega('t-clima')==='1',
+    prazo:document.getElementById('t-prazo').value||null,
+    criadoEm:Date.now(),feitoEm:null});
+  salvar(); pintarTarefas(); pintarListas(); fechar(); aviso('Tarefa salva');
+}
+function mostrar(id){document.getElementById('scrim').classList.add('on');document.getElementById(id).classList.add('on')}
+function fechar(){document.getElementById('scrim').classList.remove('on');document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('on'))}
+function aviso(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('on');setTimeout(()=>e.classList.remove('on'),1800)}
+
+/* ---------------- motor de sugestão ---------------- */
+let ultimas=[];
+function sugerir(){
+  const tempo=+pega('tempo'), tipo=pega('tipo'), local=pega('local');
+  const d=new Date(), fds=[0,6].includes(d.getDay());
+  let cand=D.tarefas.filter(t=>!t.feitoEm)
+    .filter(t=>t.minutos<=tempo)
+    .filter(t=>tipo==='qualquer'||t.tipo===tipo)
+    .filter(t=>local==='rua'?true:(t.local==='casa'||t.local==='qualquer'))
+    .filter(t=>!(t.climaImporta&&(CLIMA.chuva||CLIMA.frio)));
+
+  if(!cand.length){
+    document.getElementById('res').innerHTML=`<div class="result">
+      <div class="from">nada encontrado</div>
+      <h3>Nenhuma tarefa<br>se encaixa agora</h3>
+      <div class="why">Tenta aumentar o tempo disponível, escolher “tanto faz” no tipo, ou anotar coisas novas nas listas.</div>
+      <div class="row"><button class="btn ghost" onclick="ir('s-agora')">Voltar</button></div></div>`;
+    ir('s-result'); return;
+  }
+  const pont=cand.map(t=>{
+    let p=0, pq=[];
+    if(t.prazo){
+      const dias=Math.round((new Date(t.prazo).setHours(0,0,0,0)-hoje())/864e5);
+      if(dias<=3){p+=40;pq.push(dias<0?'já está atrasada':dias===0?'vence hoje':'o prazo tá chegando')}
+    }
+    const idade=Math.min((Date.now()-t.criadoEm)/6048e5,3);
+    if(idade>=1){p+=idade*7;pq.push(`tá parada na lista há ${Math.floor(idade)} semana${idade>=2?'s':''}`)}
+    if(t.minutos>=tempo*0.6){p+=15;pq.push('cabe direitinho no tempo que você tem')}
+    if(fds&&t.tipo==='lazer'){p+=10;pq.push('é fim de semana')}
+    if((CLIMA.chuva||CLIMA.frio)&&t.local==='casa'){p+=10;pq.push(CLIMA.chuva?'tá chovendo lá fora':'tá frio lá fora')}
+    if(ultimas.includes(t.id))p-=30;
+    return{t,p,pq};
+  }).sort((a,b)=>b.p-a.p);
+
+  const topo=pont.slice(0,3);
+  const esc1=topo[Math.floor(Math.random()*topo.length)];
+  ultimas=[esc1.t.id,...ultimas].slice(0,3);
+  const l=D.listas.find(x=>x.id===esc1.t.listaId);
+  const motivo=esc1.pq.length?esc1.pq.slice(0,2).join(' e ')+'.':'encaixa no que você pediu agora.';
+  document.getElementById('res').innerHTML=`<div class="result">
+    <div class="from">da sua lista · ${esc(l?l.nome:'—')}</div>
+    <h3>${esc(esc1.t.texto)}</h3>
+    <div class="tags" style="justify-content:center">${tags(esc1.t)}</div>
+    <div class="why"><b>Por quê:</b> ${motivo}</div>
+    <div class="row">
+      <button class="btn ghost" onclick="sugerir()">Outra</button>
+      <button class="btn solid" onclick="feito('${esc1.t.id}')">Feito</button>
+    </div></div>`;
+  ir('s-result');
+}
+function feito(id){
+  const t=D.tarefas.find(x=>x.id===id); t.feitoEm=Date.now(); salvar(); pintarListas();
+  aviso('Boa!'); ir('s-agora');
+}
+
+
+/* ---------------- caixa de entrada (IA) ---------------- */
+const MODELO='claude-sonnet-5';
+let imagemB64=null, miniB64=null, itens=JSON.parse(localStorage.getItem('agora.caixa')||'[]');
+
+function abrirChave(){
+  document.getElementById('k-chave').value=localStorage.getItem('agora.chave')||'';
+  mostrar('sheet-chave');
+}
+function salvarChave(){
+  const v=document.getElementById('k-chave').value.trim();
+  if(v) localStorage.setItem('agora.chave',v); else localStorage.removeItem('agora.chave');
+  fechar(); checarChave(); aviso(v?'Chave salva':'Chave removida');
+}
+function checarChave(){
+  document.getElementById('sem-chave').style.display=localStorage.getItem('agora.chave')?'none':'block';
+}
+
+document.getElementById('c-file').addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  imagemB64=await reduzir(f);
+  miniB64=await reduzir(f,220,0.6);
+  const p=document.getElementById('c-preview');
+  p.style.display='flex';
+  p.innerHTML=`<img src="data:image/jpeg;base64,${imagemB64}"><span>Foto anexada</span>
+    <button class="del" onclick="tirarFoto()" style="margin-left:auto">✕</button>`;
+  e.target.value='';
+});
+function tirarFoto(){imagemB64=null;miniB64=null;document.getElementById('c-preview').style.display='none'}
+
+function reduzir(file,max=800,q=0.8){
+  return new Promise(res=>{
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const r=Math.min(max/img.width,max/img.height,1);
+      const c=document.createElement('canvas');
+      c.width=img.width*r; c.height=img.height*r;
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg',q).split(',')[1]);
+    };
+    img.src=url;
+  });
+}
+
+async function processar(){
+  const chave=localStorage.getItem('agora.chave');
+  if(!chave){abrirChave();return}
+  const txt=document.getElementById('c-texto').value.trim();
+  if(!txt&&!imagemB64){aviso('Escreve algo ou anexa uma foto');return}
+
+  // grava PRIMEIRO: se o app fechar no meio, o item não se perde
+  const item={id:uid(),origem:txt||'📷 foto',mini:miniB64,img:imagemB64,
+              status:'processando',quando:Date.now()};
+  itens.unshift(item); guardarCaixa();
+  document.getElementById('c-texto').value=''; tirarFoto(); pintarCaixa();
+  rodar(item.id);
+}
+
+async function rodar(id){
+  const item=itens.find(x=>x.id===id); if(!item)return;
+  const chave=localStorage.getItem('agora.chave'); if(!chave)return;
+  item.status='processando'; guardarCaixa(); pintarCaixa();
+
+  const txt=item.img?(item.origem==='📷 foto'?'':item.origem):item.origem;
+  const listas=D.listas.map(l=>`${l.id} = ${l.nome} ${l.icone}`).join('\n');
+  const hojeISO=new Date().toISOString().slice(0,10);
+  const temLink=/https?:\/\//i.test(txt||'');
+
+  const sistema=`Você organiza a caixa de entrada de um app pessoal de tarefas.
+Recebe um texto, um link ou uma imagem e transforma em UMA tarefa.
+
+Listas disponíveis (use o id exato):
+${listas}
+
+Hoje é ${hojeISO}.
+
+Responda SOMENTE com JSON, sem markdown, sem crases, sem explicação:
+{"texto":"tarefa curta em português, começando com verbo no infinitivo",
+ "listaId":"id da lista mais adequada",
+ "minutos":15|30|60|120|180,
+ "local":"casa"|"rua"|"qualquer",
+ "tipo":"lazer"|"tarefa",
+ "climaImporta":true|false,
+ "prazo":"AAAA-MM-DD" ou null,
+ "confianca":"alta"|"baixa",
+ "nota":"uma frase curta sobre o que você identificou"}
+
+Regras: capa de filme ou série vira "Assistir <título>"; livro vira "Ler <título>";
+artigo ou paper vira "Ler <título do artigo>" com estimativa de tempo pela extensão;
+produto vira item de compra. Se não tiver certeza do que é, use confianca "baixa".`;
+
+  const conteudo=[];
+  if(item.img) conteudo.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:item.img}});
+  conteudo.push({type:'text',text:txt||'Identifique o que está nesta imagem e crie a tarefa.'});
+
+  const corpo={model:MODELO,max_tokens:600,system:sistema,messages:[{role:'user',content:conteudo}]};
+  if(temLink) corpo.tools=[{type:'web_search_20250305',name:'web_search',max_uses:2}];
+
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'content-type':'application/json','x-api-key':chave,
+               'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify(corpo)
+    });
+    if(!r.ok){
+      const e=await r.json().catch(()=>({}));
+      throw new Error(e.error?.message||('HTTP '+r.status));
+    }
+    const j=await r.json();
+    const bruto=j.content.filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
+    const limpo=bruto.replace(/```json|```/g,'').trim();
+    item.p=JSON.parse(limpo.slice(limpo.indexOf('{'),limpo.lastIndexOf('}')+1));
+    item.status='pronto'; delete item.img;   // libera espaço, mantém a miniatura
+  }catch(err){
+    item.status='erro'; item.erro=err.message;
+  }
+  guardarCaixa(); pintarCaixa(); atualizarBadge();
+}
+
+function guardarCaixa(){
+  // nunca descarta o que ainda não foi confirmado
+  const prontos=itens.filter(i=>i.status!=='pronto'||true);
+  try{ localStorage.setItem('agora.caixa',JSON.stringify(prontos)); }
+  catch(e){ // sem espaço: sacrifica as miniaturas mais antigas
+    itens.slice(12).forEach(i=>delete i.mini);
+    localStorage.setItem('agora.caixa',JSON.stringify(itens));
+  }
+}
+
+function atualizarBadge(){
+  const n=itens.filter(i=>i.status!=='pronto'||!i.visto).length;
+  const b=document.querySelector('[data-s="s-caixa"]');
+  b.querySelector('.ic').innerHTML='⌁'+(n?`<sup class="badge">${n}</sup>`:'');
+}
+
+// retoma o que ficou pela metade quando o app foi fechado
+function retomar(){
+  const presos=itens.filter(i=>i.status==='processando'&&i.img);
+  presos.forEach((i,k)=>setTimeout(()=>rodar(i.id),k*400));
+  itens.filter(i=>i.status==='processando'&&!i.img).forEach(i=>{i.status='erro';i.erro='interrompido'});
+  guardarCaixa();
+}
+
+function pintarCaixa(){
+  const el=document.getElementById('caixa-itens');
+  if(!itens.length){el.innerHTML='<div class="empty">Nada na caixa.<br>Manda um print, um link ou uma frase.</div>';return}
+  el.innerHTML=itens.map(i=>{
+    const topo=`<div class="src">${i.mini?`<img class="mini" src="data:image/jpeg;base64,${i.mini}">`:''}${esc(String(i.origem).slice(0,110))}<br><span class="quando">${quando(i.quando)}</span></div>`;
+    if(i.status==='processando') return `<div class="item">${topo}<div class="prop" style="color:var(--ink-soft)">Analisando<span class="dots"></span></div></div>`;
+    if(i.status==='erro') return `<div class="item">${topo}
+      <div class="prop" style="color:var(--ink-soft)">Não deu pra processar</div>
+      <div class="src" style="margin-top:6px">${esc(i.erro||'')}</div>
+      <div class="row"><button class="btn ghost" onclick="descartar('${i.id}')">Descartar</button>
+      <button class="btn solid" onclick="rodar('${i.id}')">Tentar de novo</button></div></div>`;
+    const l=D.listas.find(x=>x.id===i.p.listaId)||D.listas[0];
+    const t={minutos:i.p.minutos,local:i.p.local,tipo:i.p.tipo,climaImporta:i.p.climaImporta,prazo:i.p.prazo};
+    return `<div class="item">${topo}
+      <div class="prop">${esc(i.p.texto)}</div>
+      <div class="dest">→ ${l.icone} ${esc(l.nome)}${i.p.confianca==='baixa'?' · confiança baixa':''}</div>
+      <div class="tags">${tags(t)}</div>
+      ${i.p.nota?`<div class="src" style="margin:10px 0 0">${esc(i.p.nota)}</div>`:''}
+      <div class="row">
+        <button class="btn ghost" onclick="descartar('${i.id}')">Descartar</button>
+        <button class="btn solid" onclick="aceitar('${i.id}')">Adicionar</button>
+      </div></div>`;
+  }).join('');
+}
+function quando(ts){
+  const m=Math.round((Date.now()-ts)/6e4);
+  if(m<1)return'agora'; if(m<60)return`há ${m} min`;
+  const h=Math.round(m/60); if(h<24)return`há ${h}h`;
+  return`há ${Math.round(h/24)} dia${h>=48?'s':''}`;
+}
+function aceitar(id){
+  const i=itens.find(x=>x.id===id), p=i.p;
+  const l=D.listas.find(x=>x.id===p.listaId)||D.listas[0];
+  D.tarefas.push({id:uid(),texto:p.texto,listaId:l.id,minutos:p.minutos||30,
+    local:p.local||'casa',tipo:p.tipo||'tarefa',
+    climaImporta:!!p.climaImporta&&p.local!=='casa',prazo:p.prazo||null,
+    criadoEm:Date.now(),feitoEm:null});
+  salvar(); descartar(id); pintarListas(); aviso('Adicionado em '+l.nome);
+}
+function descartar(id){
+  itens=itens.filter(x=>x.id!==id);
+  guardarCaixa(); pintarCaixa(); atualizarBadge();
+}
+
+/* ---------------- backup ---------------- */
+function exportar(){
+  const b=new Blob([JSON.stringify(D,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(b); a.download='agora-backup.json'; a.click();
+}
+function importar(){
+  const i=document.createElement('input'); i.type='file'; i.accept='.json';
+  i.onchange=()=>{const f=new FileReader();
+    f.onload=()=>{try{D=JSON.parse(f.result);salvar();pintarListas();aviso('Backup restaurado')}catch(e){aviso('Arquivo inválido')}};
+    f.readAsText(i.files[0])};
+  i.click();
+}
+
+/* ---------------- início ---------------- */
+document.getElementById('hoje').innerHTML=
+  new Date().toLocaleDateString('pt-BR',{weekday:'long'}).replace('-feira','-feira')+'<br>'+
+  new Date().toLocaleDateString('pt-BR',{day:'numeric',month:'short'}).replace('.','');
+pintarListas(); pintarCaixa(); atualizarBadge(); checarChave(); carregarClima(); retomar();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
