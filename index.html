@@ -159,6 +159,25 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--nav-bg);b
 .item .dest{font-size:13px;color:var(--accent);font-weight:700;margin-top:6px}
 .item .row{margin-top:14px}
 .item .btn{padding:11px;font-size:14px}
+.tag.ed{cursor:pointer;border:1px dashed transparent;position:relative}
+.tag.ed:active{border-color:var(--accent)}
+.tag.ed::after{content:'▾';margin-left:5px;opacity:.55}
+.pick-op{width:100%;text-align:left;padding:14px 16px;border:none;border-bottom:1px solid var(--line);background:none;font-size:16px;cursor:pointer}
+.pick-op:last-child{border:none}
+.pick-op.sel{color:var(--accent);font-weight:700}
+.menu{background:none;border:none;color:var(--ink-soft);font-size:20px;padding:6px 2px 6px 10px;cursor:pointer;line-height:1}
+.consumo{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:12px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-soft);cursor:pointer}
+.consumo b{color:var(--ink);font-family:'Fraunces',serif;font-size:17px;font-weight:600}
+.mini-comp{border:1px solid var(--line);border-radius:18px;background:var(--surface);padding:12px 14px;margin-bottom:24px}
+.mini-comp .lab{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-soft);font-weight:700;margin-bottom:9px}
+.mini-comp .lin{display:flex;gap:8px}
+.mini-comp input{flex:1;border:1.5px solid var(--line);border-radius:12px;background:none;padding:12px 13px;font-size:15px;outline:none;min-width:0}
+.mini-comp input:focus{border-color:var(--accent)}
+.mini-comp button{padding:0 18px;border:none;border-radius:12px;background:var(--accent-2);color:#0D1B16;font-weight:700;font-size:15px;cursor:pointer}
+.mitem{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--line);align-items:center}
+.mitem.ok .mtxt{text-decoration:line-through;color:var(--ink-soft)}
+.mtxt{flex:1;font-size:16px}
+.perigo{width:100%;margin-top:12px;padding:15px;border:1.5px solid rgba(242,112,63,.5);border-radius:16px;background:none;color:var(--accent);font-weight:700;font-size:15px;cursor:pointer}
 .item .src .mini{width:40px;height:40px;object-fit:cover;border-radius:8px;float:left;margin:0 10px 4px 0}
 .quando{opacity:.6}
 .badge{background:var(--accent);color:#1A0B05;font-size:10px;font-weight:700;border-radius:999px;padding:1px 5px;margin-left:2px;vertical-align:super}
@@ -191,13 +210,14 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--nav-bg);b
       <button onclick="importar()">Importar</button>
       <button onclick="abrirChave()">Chave da IA</button>
     </div>
+    <div class="consumo" id="consumo" onclick="abrirConsumo()"></div>
   </section>
 
   <!-- TAREFAS -->
   <section class="screen" id="s-lista">
     <h2 class="title"><button class="back" onclick="ir('s-listas')">←</button><span id="lista-nome"></span></h2>
     <div id="tarefas"></div>
-    <button class="add" onclick="abrirTarefa()">+&nbsp; Nova tarefa</button>
+    <button class="add" id="btn-nova-tarefa" onclick="abrirTarefa()">+&nbsp; Nova tarefa</button>
   </section>
 
 
@@ -216,6 +236,14 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--nav-bg);b
       </div>
     </div>
     <input type="file" id="c-file" accept="image/*" style="display:none">
+    <div class="mini-comp">
+      <div class="lab">Direto pro supermercado</div>
+      <div class="lin">
+        <input id="m-rapido" placeholder="café, sabão, alho…" autocomplete="off"
+               onkeydown="if(event.key==='Enter')addMercadoRapido()">
+        <button onclick="addMercadoRapido()">+</button>
+      </div>
+    </div>
     <div id="caixa-itens"></div>
   </section>
 
@@ -268,12 +296,29 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--nav-bg);b
 
 <div class="scrim" id="scrim" onclick="fechar()"></div>
 
-<!-- folha: nova lista -->
+<!-- folha: lista (criar / editar) -->
 <div class="sheet" id="sheet-lista"><div class="sheet-in">
   <div class="grab"></div>
+  <div class="q-label" id="l-titulo">Nova lista</div>
   <input class="field" id="l-nome" placeholder="Nome da lista" autocomplete="off">
   <div class="emoji-pick" id="l-emoji"></div>
-  <button class="save" onclick="salvarLista()">Criar lista</button>
+  <button class="save" id="l-salvar" onclick="salvarLista()">Criar lista</button>
+  <button class="perigo" id="l-apagar" style="display:none" onclick="apagarLista()">Apagar esta lista</button>
+</div></div>
+
+<!-- folha: seletor genérico -->
+<div class="sheet" id="sheet-pick"><div class="sheet-in">
+  <div class="grab"></div>
+  <div class="q-label" id="pk-titulo"></div>
+  <div id="pk-ops"></div>
+</div></div>
+
+<!-- folha: consumo -->
+<div class="sheet" id="sheet-consumo"><div class="sheet-in">
+  <div class="grab"></div>
+  <div class="q-label">Consumo estimado da API</div>
+  <div id="cs-corpo"></div>
+  <button class="perigo" onclick="zerarConsumo()">Zerar contador</button>
 </div></div>
 
 <!-- folha: nova tarefa -->
@@ -345,8 +390,17 @@ if(!D){
   ],tarefas:[]};
   salvar();
 }
+if(!D.mercado) D.mercado=[];
+if(!D.listas.some(l=>l.mercado)){
+  const c=D.listas.find(l=>/compra|mercado/i.test(l.nome));
+  if(c){c.mercado=true;c.nome='Supermercado';c.icone='🛒'}
+  else D.listas.push({id:uid0(),nome:'Supermercado',icone:'🛒',mercado:true,pad:{local:'rua',tipo:'tarefa',minutos:60}});
+  salvar0();
+}
 function salvar(){localStorage.setItem(K,JSON.stringify(D))}
-const uid=()=>Math.random().toString(36).slice(2,9);
+function uid0(){return Math.random().toString(36).slice(2,9)}
+function salvar0(){localStorage.setItem(K,JSON.stringify(D))}
+const uid=uid0;
 const hoje=()=>new Date().setHours(0,0,0,0);
 
 /* ---------------- clima ---------------- */
@@ -406,10 +460,13 @@ function pintarListas(){
   el.innerHTML=D.listas.map(l=>{
     const t=D.tarefas.filter(x=>x.listaId===l.id&&!x.feitoEm);
     const urg=t.filter(x=>x.prazo&&new Date(x.prazo).setHours(0,0,0,0)-hoje()<=3*864e5).length;
-    const sub=t.length===0?'vazia':urg?`${urg} com prazo perto`:`${t.filter(x=>x.minutos<=30).length} rápidas`;
+    const mer=l.mercado, mi=D.mercado.filter(x=>!x.ok).length;
+    const sub=mer?(mi?`${mi} item${mi>1?'s':''} pra comprar`:'vazia')
+      :(t.length===0?'vazia':urg?`${urg} com prazo perto`:`${t.filter(x=>x.minutos<=30).length} rápidas`);
     return `<div class="list-card" onclick="abrir('${l.id}')"><div class="emoji">${l.icone}</div>
-      <div><div class="list-name">${esc(l.nome)}</div><div class="list-sub">${sub}</div></div>
-      <div class="count">${t.length}</div></div>`;
+      <div style="flex:1;min-width:0"><div class="list-name">${esc(l.nome)}</div><div class="list-sub">${sub}</div></div>
+      <div class="count">${mer?mi:t.length}</div>
+      <button class="menu" onclick="event.stopPropagation();editarLista('${l.id}')">⋯</button></div>`;
   }).join('');
 }
 let listaAtual=null;
@@ -417,7 +474,52 @@ function abrir(id){
   listaAtual=id;
   const l=D.listas.find(x=>x.id===id);
   document.getElementById('lista-nome').textContent=`${l.icone} ${l.nome}`;
-  pintarTarefas(); ir('s-lista');
+  const b=document.getElementById('btn-nova-tarefa');
+  if(l.mercado){ b.innerHTML='+&nbsp; Limpar o que já foi comprado'; b.onclick=limparMercado; pintarMercado(); }
+  else { b.innerHTML='+&nbsp; Nova tarefa'; b.onclick=abrirTarefa; pintarTarefas(); }
+  ir('s-lista');
+}
+
+/* ---------------- supermercado ---------------- */
+function listaMercado(){return D.listas.find(l=>l.mercado)}
+function addMercado(nomes){
+  const novos=String(nomes).split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean);
+  if(!novos.length)return 0;
+  novos.forEach(n=>D.mercado.push({id:uid(),nome:n,ok:false,quando:Date.now()}));
+  salvar(); pintarListas();
+  if(listaAtual&&listaMercado()&&listaAtual===listaMercado().id) pintarMercado();
+  return novos.length;
+}
+function addMercadoRapido(){
+  const c=document.getElementById('m-rapido');
+  const n=addMercado(c.value);
+  if(n){c.value='';aviso(n===1?'Adicionado ao supermercado':`${n} itens adicionados`)}
+}
+function pintarMercado(){
+  const el=document.getElementById('tarefas');
+  const its=D.mercado.slice().sort((a,b)=>(a.ok?1:0)-(b.ok?1:0));
+  const campo=`<div class="mini-comp" style="margin-bottom:18px"><div class="lin">
+      <input id="m-campo" placeholder="Adicionar item…" autocomplete="off"
+             onkeydown="if(event.key==='Enter')addMercadoAqui()">
+      <button onclick="addMercadoAqui()">+</button></div></div>`;
+  if(!its.length){el.innerHTML=campo+'<div class="empty">Lista vazia.<br>Vai enchendo conforme lembrar.</div>';return}
+  el.innerHTML=campo+its.map(i=>`
+    <div class="mitem ${i.ok?'ok':''}">
+      <div class="box" onclick="toggleMercado('${i.id}')">✓</div>
+      <div class="mtxt">${esc(i.nome)}</div>
+      <button class="del" onclick="delMercado('${i.id}')">✕</button>
+    </div>`).join('');
+}
+function addMercadoAqui(){
+  const c=document.getElementById('m-campo');
+  if(addMercado(c.value)) c.value='';
+}
+function toggleMercado(id){const i=D.mercado.find(x=>x.id===id);i.ok=!i.ok;salvar();pintarMercado();pintarListas()}
+function delMercado(id){D.mercado=D.mercado.filter(x=>x.id!==id);salvar();pintarMercado();pintarListas()}
+function limparMercado(){
+  const n=D.mercado.filter(i=>i.ok).length;
+  if(!n){aviso('Nada marcado como comprado');return}
+  D.mercado=D.mercado.filter(i=>!i.ok); salvar(); pintarMercado(); pintarListas(); aviso(`${n} item${n>1?'s':''} removido${n>1?'s':''}`);
 }
 function pintarTarefas(){
   const ts=D.tarefas.filter(t=>t.listaId===listaAtual)
@@ -431,6 +533,39 @@ function pintarTarefas(){
         <div class="tags">${tags(t)}</div></div>
       <button class="del" onclick="apagar('${t.id}')">✕</button>
     </div>`).join('');
+}
+const MINUTOS=[15,30,45,60,75,90,105,120,135,150,165,180];
+const rotMin=m=>m>=60?(m%60?Math.floor(m/60)+'h'+(m%60):(m/60)+'h'):m+'min';
+function tagsEd(i){
+  const p=i.p;
+  let h=`<span class="tag ed" onclick="picar('${i.id}','minutos')">${rotMin(p.minutos||30)}</span>`;
+  h+=`<span class="tag cool ed" onclick="picar('${i.id}','local')">${p.local||'casa'}</span>`;
+  h+=`<span class="tag ed" onclick="picar('${i.id}','tipo')">${p.tipo==='lazer'?'lazer':'obrigação'}</span>`;
+  if(p.climaImporta) h+='<span class="tag hot">depende do clima</span>';
+  if(p.prazo){
+    const d=Math.round((new Date(p.prazo).setHours(0,0,0,0)-hoje())/864e5);
+    h+=`<span class="tag ${d<=3?'due':''}">${d<0?'atrasada':d===0?'hoje':d===1?'amanhã':'em '+d+'d'}</span>`;
+  }
+  return h;
+}
+const OPCOES={
+  minutos:{titulo:'Quanto tempo leva',ops:MINUTOS.map(m=>[m,rotMin(m)])},
+  local:{titulo:'Onde',ops:[['casa','Casa'],['rua','Rua'],['qualquer','Tanto faz']]},
+  tipo:{titulo:'Tipo',ops:[['tarefa','Obrigação'],['lazer','Lazer']]}
+};
+function picar(itemId,campo){
+  const i=itens.find(x=>x.id===itemId); if(!i)return;
+  const cfg=OPCOES[campo];
+  document.getElementById('pk-titulo').textContent=cfg.titulo;
+  document.getElementById('pk-ops').innerHTML=cfg.ops.map(([v,r])=>
+    `<button class="pick-op ${String(i.p[campo])===String(v)?'sel':''}" onclick="definir('${itemId}','${campo}','${v}')">${r}</button>`).join('');
+  mostrar('sheet-pick');
+}
+function definir(itemId,campo,valor){
+  const i=itens.find(x=>x.id===itemId);
+  i.p[campo]=campo==='minutos'?+valor:valor;
+  if(campo==='local'&&valor==='casa') i.p.climaImporta=false;
+  guardarCaixa(); pintarCaixa(); fechar();
 }
 function tags(t){
   const m=t.minutos>=60?(t.minutos/60)+'h':t.minutos+'min';
@@ -448,16 +583,52 @@ function apagar(id){D.tarefas=D.tarefas.filter(x=>x.id!==id);salvar();pintarTare
 
 /* ---------------- folhas ---------------- */
 const EMOJIS=['🏠','💼','📚','🎬','🛒','🏃','🎧','🍳','🌱','🧹','✈️','💡'];
+let listaEditando=null;
 function abrirLista(){
+  listaEditando=null;
+  document.getElementById('l-titulo').textContent='Nova lista';
+  document.getElementById('l-salvar').textContent='Criar lista';
+  document.getElementById('l-apagar').style.display='none';
   document.getElementById('l-nome').value='';
   document.getElementById('l-emoji').innerHTML=EMOJIS.map((e,i)=>`<button class="${i?'':'sel'}" onclick="escolherEmoji(this)">${e}</button>`).join('');
   mostrar('sheet-lista');
+}
+function editarLista(id){
+  const l=D.listas.find(x=>x.id===id); if(!l)return;
+  listaEditando=id;
+  document.getElementById('l-titulo').textContent='Editar lista';
+  document.getElementById('l-salvar').textContent='Salvar';
+  document.getElementById('l-apagar').style.display='block';
+  document.getElementById('l-nome').value=l.nome;
+  const lista=EMOJIS.includes(l.icone)?EMOJIS:[l.icone,...EMOJIS];
+  document.getElementById('l-emoji').innerHTML=lista.map(e=>
+    `<button class="${e===l.icone?'sel':''}" onclick="escolherEmoji(this)">${e}</button>`).join('');
+  mostrar('sheet-lista');
+}
+function apagarLista(){
+  const l=D.listas.find(x=>x.id===listaEditando); if(!l)return;
+  if(D.listas.length<2){aviso('Precisa sobrar pelo menos uma lista');return}
+  const n=D.tarefas.filter(t=>t.listaId===l.id).length;
+  const extra=l.mercado?' Os itens do supermercado vão junto.':'';
+  if(!confirm(`Apagar "${l.nome}"?${n?` ${n} tarefa${n>1?'s':''} ${n>1?'serão apagadas':'será apagada'} junto.`:''}${extra}`)) return;
+  D.tarefas=D.tarefas.filter(t=>t.listaId!==l.id);
+  if(l.mercado) D.mercado=[];
+  D.listas=D.listas.filter(x=>x.id!==l.id);
+  itens.filter(i=>i.p&&i.p.listaId===l.id).forEach(i=>i.p.listaId=D.listas[0].id);
+  guardarCaixa(); salvar(); pintarListas(); pintarCaixa(); fechar(); ir('s-listas'); aviso('Lista apagada');
 }
 function escolherEmoji(b){b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('sel'));b.classList.add('sel')}
 function salvarLista(){
   const n=document.getElementById('l-nome').value.trim(); if(!n)return;
   const e=document.querySelector('#l-emoji button.sel').textContent;
-  D.listas.push({id:uid(),nome:n,icone:e,pad:{}}); salvar(); pintarListas(); fechar(); aviso('Lista criada');
+  if(listaEditando){
+    const l=D.listas.find(x=>x.id===listaEditando);
+    l.nome=n; l.icone=e; salvar(); pintarListas();
+    if(listaAtual===l.id) document.getElementById('lista-nome').textContent=`${e} ${n}`;
+    fechar(); aviso('Lista atualizada');
+  }else{
+    D.listas.push({id:uid(),nome:n,icone:e,pad:{}}); salvar(); pintarListas(); fechar(); aviso('Lista criada');
+  }
 }
 function abrirTarefa(){
   const l=D.listas.find(x=>x.id===listaAtual), p=l.pad||{};
@@ -490,7 +661,15 @@ let ultimas=[];
 function sugerir(){
   const tempo=+pega('tempo'), tipo=pega('tipo'), local=pega('local');
   const d=new Date(), fds=[0,6].includes(d.getDay());
-  let cand=D.tarefas.filter(t=>!t.feitoEm)
+  const base=D.tarefas.filter(t=>!t.feitoEm).slice();
+  const mIts=D.mercado.filter(i=>!i.ok);
+  const lm=listaMercado();
+  if(mIts.length&&lm){
+    const maisAntigo=Math.min(...mIts.map(i=>i.quando||Date.now()));
+    base.push({id:'__mercado',texto:'Ir ao supermercado',listaId:lm.id,minutos:60,
+      local:'rua',tipo:'tarefa',climaImporta:true,prazo:null,criadoEm:maisAntigo,feitoEm:null,mercado:true});
+  }
+  let cand=base
     .filter(t=>t.minutos<=tempo)
     .filter(t=>tipo==='qualquer'||t.tipo===tipo)
     .filter(t=>local==='rua'?true:(t.local==='casa'||t.local==='qualquer'))
@@ -515,6 +694,11 @@ function sugerir(){
     if(t.minutos>=tempo*0.6){p+=15;pq.push('cabe direitinho no tempo que você tem')}
     if(fds&&t.tipo==='lazer'){p+=10;pq.push('é fim de semana')}
     if((CLIMA.chuva||CLIMA.frio)&&t.local==='casa'){p+=10;pq.push(CLIMA.chuva?'tá chovendo lá fora':'tá frio lá fora')}
+    if(t.mercado){
+      const n=mIts.length;
+      p+=Math.min(n*4,25);
+      pq.push(`tem ${n} item${n>1?'s':''} esperando na lista`);
+    }
     if(ultimas.includes(t.id))p-=30;
     return{t,p,pq};
   }).sort((a,b)=>b.p-a.p);
@@ -524,14 +708,20 @@ function sugerir(){
   ultimas=[esc1.t.id,...ultimas].slice(0,3);
   const l=D.listas.find(x=>x.id===esc1.t.listaId);
   const motivo=esc1.pq.length?esc1.pq.slice(0,2).join(' e ')+'.':'encaixa no que você pediu agora.';
+  const ehMercado=!!esc1.t.mercado;
+  const compras=ehMercado?`<div class="why" style="text-align:left">
+      <b>Sua lista:</b><br>${mIts.map(i=>'· '+esc(i.nome)).join('<br>')}</div>`:'';
   document.getElementById('res').innerHTML=`<div class="result">
     <div class="from">da sua lista · ${esc(l?l.nome:'—')}</div>
     <h3>${esc(esc1.t.texto)}</h3>
     <div class="tags" style="justify-content:center">${tags(esc1.t)}</div>
     <div class="why"><b>Por quê:</b> ${motivo}</div>
+    ${compras}
     <div class="row">
       <button class="btn ghost" onclick="sugerir()">Outra</button>
-      <button class="btn solid" onclick="feito('${esc1.t.id}')">Feito</button>
+      ${ehMercado
+        ? `<button class="btn solid" onclick="abrir('${l.id}')">Abrir lista</button>`
+        : `<button class="btn solid" onclick="feito('${esc1.t.id}')">Feito</button>`}
     </div></div>`;
   ir('s-result');
 }
@@ -651,6 +841,8 @@ produto vira item de compra. Se não tiver certeza do que é, use confianca "bai
       throw new Error(e.error?.message||('HTTP '+r.status));
     }
     const j=await r.json();
+    if(j.usage) somarUso(j.usage, j.usage.server_tool_use?.web_search_requests
+        || j.content.filter(b=>b.type==='server_tool_use').length || 0);
     const bruto=j.content.filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
     const limpo=bruto.replace(/```json|```/g,'').trim();
     item.p=JSON.parse(limpo.slice(limpo.indexOf('{'),limpo.lastIndexOf('}')+1));
@@ -697,11 +889,10 @@ function pintarCaixa(){
       <div class="row"><button class="btn ghost" onclick="descartar('${i.id}')">Descartar</button>
       <button class="btn solid" onclick="rodar('${i.id}')">Tentar de novo</button></div></div>`;
     const l=D.listas.find(x=>x.id===i.p.listaId)||D.listas[0];
-    const t={minutos:i.p.minutos,local:i.p.local,tipo:i.p.tipo,climaImporta:i.p.climaImporta,prazo:i.p.prazo};
     return `<div class="item">${topo}
       <div class="prop">${esc(i.p.texto)}</div>
       <div class="dest">→ ${l.icone} ${esc(l.nome)}${i.p.confianca==='baixa'?' · confiança baixa':''}</div>
-      <div class="tags">${tags(t)}</div>
+      <div class="tags">${tagsEd(i)}</div>
       ${i.p.nota?`<div class="src" style="margin:10px 0 0">${esc(i.p.nota)}</div>`:''}
       <div class="row">
         <button class="btn ghost" onclick="descartar('${i.id}')">Descartar</button>
@@ -718,6 +909,11 @@ function quando(ts){
 function aceitar(id){
   const i=itens.find(x=>x.id===id), p=i.p;
   const l=D.listas.find(x=>x.id===p.listaId)||D.listas[0];
+  if(l.mercado){
+    const nome=p.texto.replace(/^(comprar|adquirir|pegar)\s+/i,'');
+    D.mercado.push({id:uid(),nome,ok:false,quando:Date.now()});
+    salvar(); descartar(id); pintarListas(); aviso('Adicionado ao supermercado'); return;
+  }
   D.tarefas.push({id:uid(),texto:p.texto,listaId:l.id,minutos:p.minutos||30,
     local:p.local||'casa',tipo:p.tipo||'tarefa',
     climaImporta:!!p.climaImporta&&p.local!=='casa',prazo:p.prazo||null,
@@ -727,6 +923,37 @@ function aceitar(id){
 function descartar(id){
   itens=itens.filter(x=>x.id!==id);
   guardarCaixa(); pintarCaixa(); atualizarBadge();
+}
+
+/* ---------------- consumo estimado ---------------- */
+const PRECO={ent:2/1e6, sai:10/1e6, busca:10/1000};  // claude-sonnet-5, USD
+let USO=JSON.parse(localStorage.getItem('agora.uso')||'{"ent":0,"sai":0,"buscas":0,"itens":0}');
+function somarUso(u,buscas){
+  USO.ent+=u.input_tokens||0; USO.sai+=u.output_tokens||0;
+  USO.buscas+=buscas||0; USO.itens++;
+  localStorage.setItem('agora.uso',JSON.stringify(USO)); pintarConsumo();
+}
+const custoTotal=()=>USO.ent*PRECO.ent+USO.sai*PRECO.sai+USO.buscas*PRECO.busca;
+function pintarConsumo(){
+  const el=document.getElementById('consumo'); if(!el)return;
+  el.innerHTML=USO.itens
+    ? `<b>US$ ${custoTotal().toFixed(2)}</b> estimados em ${USO.itens} ${USO.itens===1?'item':'itens'} processados`
+    : 'Nenhum item processado pela IA ainda';
+}
+function abrirConsumo(){
+  document.getElementById('cs-corpo').innerHTML=`
+    <div class="aviso" style="display:block">
+      <b>US$ ${custoTotal().toFixed(2)}</b> em ${USO.itens} ${USO.itens===1?'item':'itens'}<br><br>
+      Entrada: ${USO.ent.toLocaleString('pt-BR')} tokens<br>
+      Saída: ${USO.sai.toLocaleString('pt-BR')} tokens<br>
+      Buscas web: ${USO.buscas}<br><br>
+      Estimativa feita aqui no aparelho, pela tabela de preços do modelo. Conta só o que passou por este app — o saldo real fica em console.anthropic.com, em Usage.
+    </div>`;
+  mostrar('sheet-consumo');
+}
+function zerarConsumo(){
+  USO={ent:0,sai:0,buscas:0,itens:0};
+  localStorage.setItem('agora.uso',JSON.stringify(USO)); pintarConsumo(); fechar(); aviso('Contador zerado');
 }
 
 /* ---------------- backup ---------------- */
@@ -747,7 +974,7 @@ function importar(){
 document.getElementById('hoje').innerHTML=
   new Date().toLocaleDateString('pt-BR',{weekday:'long'}).replace('-feira','-feira')+'<br>'+
   new Date().toLocaleDateString('pt-BR',{day:'numeric',month:'short'}).replace('.','');
-pintarListas(); pintarCaixa(); atualizarBadge(); checarChave(); carregarClima(); retomar();
+pintarListas(); pintarCaixa(); atualizarBadge(); pintarConsumo(); checarChave(); carregarClima(); retomar();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 </script>
 </body>
