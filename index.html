@@ -159,6 +159,16 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--nav-bg);b
 .item .dest{font-size:13px;color:var(--accent);font-weight:700;margin-top:6px}
 .item .row{margin-top:14px}
 .item .btn{padding:11px;font-size:14px}
+.urg-bloco{border:1px solid rgba(242,112,63,.45);border-radius:var(--radius);background:rgba(242,112,63,.07);padding:16px 18px;margin-bottom:22px}
+.urg-cab{display:flex;align-items:center;gap:8px;font-size:12px;text-transform:uppercase;letter-spacing:.12em;font-weight:700;color:var(--accent);margin-bottom:12px}
+.urg-cab .mais{margin-left:auto;background:none;border:none;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.1em}
+.urg-item{display:flex;gap:11px;align-items:flex-start;padding:9px 0}
+.urg-item .box{width:20px;height:20px;border-radius:6px;font-size:12px}
+.urg-txt{font-size:15.5px;line-height:1.35;flex:1}
+.urg-quando{font-size:12px;color:var(--ink-soft);margin-top:2px}
+.tag.data{background:none;border:1px solid var(--line);color:var(--ink-soft);text-transform:none;letter-spacing:.02em;font-weight:500}
+.ics{background:none;border:none;color:var(--accent-2);font-size:13px;font-weight:700;padding:6px 0 0;cursor:pointer}
+.atalho-urg{width:100%;margin-top:12px;padding:12px;border:1.5px solid rgba(242,112,63,.5);border-radius:14px;background:none;color:var(--accent);font-weight:700;font-size:14px;cursor:pointer}
 .tag.ed{cursor:pointer;border:1px dashed transparent;position:relative}
 .tag.ed:active{border-color:var(--accent)}
 .tag.ed::after{content:'▾';margin-left:5px;opacity:.55}
@@ -202,6 +212,7 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--nav-bg);b
       <div class="deg">—</div>
       <div class="meta">Carregando o clima…</div>
     </div>
+    <div id="urgente-bloco"></div>
     <h2 class="title">Minhas listas</h2>
     <div id="listas"></div>
     <button class="add" onclick="abrirLista()">+&nbsp; Nova lista</button>
@@ -302,6 +313,23 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--nav-bg);b
   <div class="q-label" id="l-titulo">Nova lista</div>
   <input class="field" id="l-nome" placeholder="Nome da lista" autocomplete="off">
   <div class="emoji-pick" id="l-emoji"></div>
+  <div class="q">
+    <div class="q-label">Aparece nas sugestões do botão “Agora”?</div>
+    <div class="opts" data-g="l-sug">
+      <button class="opt sel" data-v="1">Sim</button>
+      <button class="opt" data-v="0">Não sugerir</button>
+    </div>
+  </div>
+  <div class="q">
+    <div class="q-label">Marcar como urgente</div>
+    <div class="opts" data-g="l-urg">
+      <button class="opt sel" data-v="0">Não</button>
+      <button class="opt" data-v="1">Urgente</button>
+    </div>
+    <div class="src" style="color:var(--ink-soft);font-size:13px;margin-top:8px">
+      Só uma lista pode ser urgente. Os itens dela aparecem na tela inicial e ganham um atalho na caixa de entrada.
+    </div>
+  </div>
   <button class="save" id="l-salvar" onclick="salvarLista()">Criar lista</button>
   <button class="perigo" id="l-apagar" style="display:none" onclick="apagarLista()">Apagar esta lista</button>
 </div></div>
@@ -360,6 +388,8 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--nav-bg);b
   <div class="q">
     <div class="q-label">Prazo (opcional)</div>
     <input class="field" type="date" id="t-prazo">
+    <div class="q-label">Horário (opcional)</div>
+    <input class="field" type="time" id="t-hora">
   </div>
   <button class="save" onclick="salvarTarefa()">Salvar tarefa</button>
 </div></div>
@@ -455,7 +485,37 @@ document.body.addEventListener('click',e=>{
 const pega=g=>document.querySelector(`[data-g="${g}"] .opt.sel`).dataset.v;
 
 /* ---------------- render ---------------- */
+function listaUrgente(){return D.listas.find(l=>l.urgente)}
+function pintarUrgente(){
+  const el=document.getElementById('urgente-bloco');
+  const l=listaUrgente();
+  if(!l){el.innerHTML='';return}
+  const ts=D.tarefas.filter(t=>t.listaId===l.id&&!t.feitoEm)
+    .sort((a,b)=>(a.prazo?new Date(a.prazo):9e15)-(b.prazo?new Date(b.prazo):9e15));
+  if(!ts.length){el.innerHTML='';return}
+  const mostra=ts.slice(0,5);
+  el.innerHTML=`<div class="urg-bloco">
+    <div class="urg-cab">${l.icone} ${esc(l.nome)}
+      <button class="mais" onclick="abrir('${l.id}')">ver tudo</button></div>
+    ${mostra.map(t=>`<div class="urg-item">
+        <div class="box" onclick="alternarUrg('${t.id}')">✓</div>
+        <div><div class="urg-txt">${esc(t.texto)}</div>
+        <div class="urg-quando">${t.prazo?prazoCurto(t):'anotada '+dataCurta(t.criadoEm)}</div></div>
+      </div>`).join('')}
+    ${ts.length>5?`<div class="urg-quando" style="margin-top:10px">+ ${ts.length-5} ${ts.length-5>1?'outras':'outra'}</div>`:''}
+  </div>`;
+}
+function prazoCurto(t){
+  const d=Math.round((new Date(t.prazo).setHours(0,0,0,0)-hoje())/864e5);
+  const q=d<0?'atrasada':d===0?'hoje':d===1?'amanhã':'em '+d+' dias';
+  return q+(t.hora?' às '+t.hora:'');
+}
+function alternarUrg(id){
+  const t=D.tarefas.find(x=>x.id===id); t.feitoEm=Date.now();
+  salvar(); pintarUrgente(); pintarListas(); aviso('Feito');
+}
 function pintarListas(){
+  pintarUrgente();
   const el=document.getElementById('listas');
   el.innerHTML=D.listas.map(l=>{
     const t=D.tarefas.filter(x=>x.listaId===l.id&&!x.feitoEm);
@@ -530,7 +590,8 @@ function pintarTarefas(){
     <div class="task ${t.feitoEm?'done':''}">
       <div class="box" onclick="alternar('${t.id}')">✓</div>
       <div class="task-body"><div class="task-text">${esc(t.texto)}</div>
-        <div class="tags">${tags(t)}</div></div>
+        <div class="tags">${tags(t)}</div>
+        ${t.prazo?`<button class="ics" onclick="event.stopPropagation();paraCalendario('${t.id}')">+ Adicionar ao calendário</button>`:''}</div>
       <button class="del" onclick="apagar('${t.id}')">✕</button>
     </div>`).join('');
 }
@@ -567,19 +628,53 @@ function definir(itemId,campo,valor){
   if(campo==='local'&&valor==='casa') i.p.climaImporta=false;
   guardarCaixa(); pintarCaixa(); fechar();
 }
+const dataCurta=ts=>new Date(ts).toLocaleDateString('pt-BR',{day:'numeric',month:'short'}).replace(' de ',' ').replace('.','');
 function tags(t){
   const m=t.minutos>=60?(t.minutos/60)+'h':t.minutos+'min';
   let h=`<span class="tag">${m}</span><span class="tag cool">${t.local}</span><span class="tag">${t.tipo==='lazer'?'lazer':'obrigação'}</span>`;
   if(t.climaImporta) h+='<span class="tag hot">depende do clima</span>';
   if(t.prazo){
     const d=Math.round((new Date(t.prazo).setHours(0,0,0,0)-hoje())/864e5);
-    h+=`<span class="tag ${d<=3?'due':''}">${d<0?'atrasada':d===0?'hoje':d===1?'amanhã':'em '+d+'d'}</span>`;
+    const q=d<0?'atrasada':d===0?'hoje':d===1?'amanhã':'em '+d+'d';
+    h+=`<span class="tag ${d<=3?'due':''}">${q}${t.hora?' '+t.hora:''}</span>`;
   }
+  if(t.criadoEm) h+=`<span class="tag data">anotada ${dataCurta(t.criadoEm)}</span>`;
   return h;
 }
 const esc=s=>s.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
 function alternar(id){const t=D.tarefas.find(x=>x.id===id);t.feitoEm=t.feitoEm?null:Date.now();salvar();pintarTarefas();pintarListas()}
 function apagar(id){D.tarefas=D.tarefas.filter(x=>x.id!==id);salvar();pintarTarefas();pintarListas()}
+
+/* ---------------- calendário (.ics) ---------------- */
+function paraCalendario(id){
+  const t=D.tarefas.find(x=>x.id===id); if(!t||!t.prazo)return;
+  const z=n=>String(n).padStart(2,'0');
+  const [A,M,Dd]=t.prazo.split('-').map(Number);
+  let ini,fim,linhas;
+  if(t.hora){
+    const [hh,mm]=t.hora.split(':').map(Number);
+    const i=new Date(A,M-1,Dd,hh,mm), f=new Date(i.getTime()+(t.minutos||60)*6e4);
+    const fmt=d=>`${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}T${z(d.getHours())}${z(d.getMinutes())}00`;
+    linhas=[`DTSTART:${fmt(i)}`,`DTEND:${fmt(f)}`];
+  }else{
+    const f=new Date(A,M-1,Dd+1);
+    linhas=[`DTSTART;VALUE=DATE:${A}${z(M)}${z(Dd)}`,
+            `DTEND;VALUE=DATE:${f.getFullYear()}${z(f.getMonth()+1)}${z(f.getDate())}`];
+  }
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//agora//PT-BR','CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',`UID:${t.id}@agora.app`,
+    `DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').split('.')[0]}Z`,
+    ...linhas,
+    `SUMMARY:${t.texto.replace(/[,;\\]/g,m=>'\\'+m)}`,
+    'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=t.texto.slice(0,30).replace(/[^\w\sÀ-ú-]/g,'')+'.ics';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
+  aviso('O iPhone vai pedir confirmação');
+}
 
 /* ---------------- folhas ---------------- */
 const EMOJIS=['🏠','💼','📚','🎬','🛒','🏃','🎧','🍳','🌱','🧹','✈️','💡'];
@@ -590,6 +685,7 @@ function abrirLista(){
   document.getElementById('l-salvar').textContent='Criar lista';
   document.getElementById('l-apagar').style.display='none';
   document.getElementById('l-nome').value='';
+  marcar('l-sug','1'); marcar('l-urg','0');
   document.getElementById('l-emoji').innerHTML=EMOJIS.map((e,i)=>`<button class="${i?'':'sel'}" onclick="escolherEmoji(this)">${e}</button>`).join('');
   mostrar('sheet-lista');
 }
@@ -600,6 +696,7 @@ function editarLista(id){
   document.getElementById('l-salvar').textContent='Salvar';
   document.getElementById('l-apagar').style.display='block';
   document.getElementById('l-nome').value=l.nome;
+  marcar('l-sug',l.semSugestao?'0':'1'); marcar('l-urg',l.urgente?'1':'0');
   const lista=EMOJIS.includes(l.icone)?EMOJIS:[l.icone,...EMOJIS];
   document.getElementById('l-emoji').innerHTML=lista.map(e=>
     `<button class="${e===l.icone?'sel':''}" onclick="escolherEmoji(this)">${e}</button>`).join('');
@@ -621,19 +718,24 @@ function escolherEmoji(b){b.parentElement.querySelectorAll('button').forEach(x=>
 function salvarLista(){
   const n=document.getElementById('l-nome').value.trim(); if(!n)return;
   const e=document.querySelector('#l-emoji button.sel').textContent;
+  const semSug=pega('l-sug')==='0', urg=pega('l-urg')==='1';
+  if(urg) D.listas.forEach(x=>x.urgente=false);
   if(listaEditando){
     const l=D.listas.find(x=>x.id===listaEditando);
-    l.nome=n; l.icone=e; salvar(); pintarListas();
+    l.nome=n; l.icone=e; l.semSugestao=semSug; l.urgente=urg;
+    salvar(); pintarListas(); pintarCaixa();
     if(listaAtual===l.id) document.getElementById('lista-nome').textContent=`${e} ${n}`;
     fechar(); aviso('Lista atualizada');
   }else{
-    D.listas.push({id:uid(),nome:n,icone:e,pad:{}}); salvar(); pintarListas(); fechar(); aviso('Lista criada');
+    D.listas.push({id:uid(),nome:n,icone:e,pad:{},semSugestao:semSug,urgente:urg});
+    salvar(); pintarListas(); pintarCaixa(); fechar(); aviso('Lista criada');
   }
 }
 function abrirTarefa(){
   const l=D.listas.find(x=>x.id===listaAtual), p=l.pad||{};
   document.getElementById('t-texto').value='';
   document.getElementById('t-prazo').value='';
+  document.getElementById('t-hora').value='';
   marcar('t-min',p.minutos||30); marcar('t-local',p.local||'casa'); marcar('t-tipo',p.tipo||'tarefa'); marcar('t-clima','0');
   document.getElementById('q-clima').style.display=(p.local&&p.local!=='casa')?'block':'none';
   mostrar('sheet-tarefa');
@@ -649,6 +751,7 @@ function salvarTarefa(){
     minutos:+pega('t-min'),local,tipo:pega('t-tipo'),
     climaImporta:local!=='casa'&&pega('t-clima')==='1',
     prazo:document.getElementById('t-prazo').value||null,
+    hora:document.getElementById('t-hora').value||null,
     criadoEm:Date.now(),feitoEm:null});
   salvar(); pintarTarefas(); pintarListas(); fechar(); aviso('Tarefa salva');
 }
@@ -661,10 +764,12 @@ let ultimas=[];
 function sugerir(){
   const tempo=+pega('tempo'), tipo=pega('tipo'), local=pega('local');
   const d=new Date(), fds=[0,6].includes(d.getDay());
-  const base=D.tarefas.filter(t=>!t.feitoEm).slice();
+  const semSug=new Set(D.listas.filter(l=>l.semSugestao).map(l=>l.id));
+  const base=D.tarefas.filter(t=>!t.feitoEm&&!semSug.has(t.listaId)).slice();
   const mIts=D.mercado.filter(i=>!i.ok);
   const lm=listaMercado();
-  if(mIts.length&&lm){
+  const MIN_MERCADO=5;
+  if(mIts.length>=MIN_MERCADO&&lm&&!lm.semSugestao){
     const maisAntigo=Math.min(...mIts.map(i=>i.quando||Date.now()));
     base.push({id:'__mercado',texto:'Ir ao supermercado',listaId:lm.id,minutos:60,
       local:'rua',tipo:'tarefa',climaImporta:true,prazo:null,criadoEm:maisAntigo,feitoEm:null,mercado:true});
@@ -815,8 +920,12 @@ Responda SOMENTE com JSON, sem markdown, sem crases, sem explicação:
  "tipo":"lazer"|"tarefa",
  "climaImporta":true|false,
  "prazo":"AAAA-MM-DD" ou null,
+ "hora":"HH:MM" ou null,
  "confianca":"alta"|"baixa",
  "nota":"uma frase curta sobre o que você identificou"}
+
+Se o texto trouxer dia e horário de um compromisso ("dentista quinta 14h"),
+preencha prazo e hora. Sem horário explícito, hora fica null.
 
 Regras: capa de filme ou série vira "Assistir <título>"; livro vira "Ler <título>";
 artigo ou paper vira "Ler <título do artigo>" com estimativa de tempo pela extensão;
@@ -894,6 +1003,8 @@ function pintarCaixa(){
       <div class="dest">→ ${l.icone} ${esc(l.nome)}${i.p.confianca==='baixa'?' · confiança baixa':''}</div>
       <div class="tags">${tagsEd(i)}</div>
       ${i.p.nota?`<div class="src" style="margin:10px 0 0">${esc(i.p.nota)}</div>`:''}
+      ${(()=>{const u=listaUrgente();
+        return (u&&u.id!==l.id)?`<button class="atalho-urg" onclick="mandarUrgente('${i.id}')">→ Mandar para ${esc(u.icone+' '+u.nome)}</button>`:''})()}
       <div class="row">
         <button class="btn ghost" onclick="descartar('${i.id}')">Descartar</button>
         <button class="btn solid" onclick="aceitar('${i.id}')">Adicionar</button>
@@ -916,9 +1027,14 @@ function aceitar(id){
   }
   D.tarefas.push({id:uid(),texto:p.texto,listaId:l.id,minutos:p.minutos||30,
     local:p.local||'casa',tipo:p.tipo||'tarefa',
-    climaImporta:!!p.climaImporta&&p.local!=='casa',prazo:p.prazo||null,
+    climaImporta:!!p.climaImporta&&p.local!=='casa',prazo:p.prazo||null,hora:p.hora||null,
     criadoEm:Date.now(),feitoEm:null});
   salvar(); descartar(id); pintarListas(); aviso('Adicionado em '+l.nome);
+}
+function mandarUrgente(id){
+  const u=listaUrgente(); if(!u)return;
+  const i=itens.find(x=>x.id===id); i.p.listaId=u.id;
+  guardarCaixa(); aceitar(id);
 }
 function descartar(id){
   itens=itens.filter(x=>x.id!==id);
