@@ -157,6 +157,7 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--nav-bg);b
 .item .src{font-size:12px;color:var(--ink-soft);line-height:1.5;margin-bottom:10px;word-break:break-word}
 .item .prop{font-size:17px;font-weight:700;line-height:1.35}
 .item .dest{font-size:13px;color:var(--accent);font-weight:700;margin-top:6px}
+.item .dest.ed{cursor:pointer;display:inline-block;padding:3px 0}
 .item .row{margin-top:14px}
 .item .btn{padding:11px;font-size:14px}
 .urg-bloco{border:1px solid rgba(242,112,63,.45);border-radius:var(--radius);background:rgba(242,112,63,.07);padding:16px 18px;margin-bottom:22px}
@@ -166,6 +167,7 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--nav-bg);b
 .urg-item .box{width:20px;height:20px;border-radius:6px;font-size:12px}
 .urg-txt{font-size:15.5px;line-height:1.35;flex:1}
 .urg-quando{font-size:12px;color:var(--ink-soft);margin-top:2px}
+.versao{text-align:center;font-size:11px;color:var(--ink-soft);opacity:.55;letter-spacing:.12em;text-transform:uppercase;margin-top:28px;font-weight:700}
 .tag.data{background:none;border:1px solid var(--line);color:var(--ink-soft);text-transform:none;letter-spacing:.02em;font-weight:500}
 .ics{background:none;border:none;color:var(--accent-2);font-size:13px;font-weight:700;padding:6px 0 0;cursor:pointer}
 .atalho-urg{width:100%;margin-top:12px;padding:12px;border:1.5px solid rgba(242,112,63,.5);border-radius:14px;background:none;color:var(--accent);font-weight:700;font-size:14px;cursor:pointer}
@@ -222,6 +224,7 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--nav-bg);b
       <button onclick="abrirChave()">Chave da IA</button>
     </div>
     <div class="consumo" id="consumo" onclick="abrirConsumo()"></div>
+    <div class="versao" id="versao"></div>
   </section>
 
   <!-- TAREFAS -->
@@ -616,7 +619,9 @@ const OPCOES={
 };
 function picar(itemId,campo){
   const i=itens.find(x=>x.id===itemId); if(!i)return;
-  const cfg=OPCOES[campo];
+  const cfg=campo==='listaId'
+    ? {titulo:'Mandar para qual lista',ops:D.listas.map(l=>[l.id,`${l.icone} ${l.nome}`])}
+    : OPCOES[campo];
   document.getElementById('pk-titulo').textContent=cfg.titulo;
   document.getElementById('pk-ops').innerHTML=cfg.ops.map(([v,r])=>
     `<button class="pick-op ${String(i.p[campo])===String(v)?'sel':''}" onclick="definir('${itemId}','${campo}','${v}')">${r}</button>`).join('');
@@ -838,6 +843,7 @@ function feito(id){
 
 /* ---------------- caixa de entrada (IA) ---------------- */
 const MODELO='claude-sonnet-5';
+const VERSAO='1.3';
 let imagemB64=null, miniB64=null, itens=JSON.parse(localStorage.getItem('agora.caixa')||'[]');
 
 function abrirChave(){
@@ -1000,7 +1006,7 @@ function pintarCaixa(){
     const l=D.listas.find(x=>x.id===i.p.listaId)||D.listas[0];
     return `<div class="item">${topo}
       <div class="prop">${esc(i.p.texto)}</div>
-      <div class="dest">→ ${l.icone} ${esc(l.nome)}${i.p.confianca==='baixa'?' · confiança baixa':''}</div>
+      <div class="dest ed" onclick="picar('${i.id}','listaId')">→ ${l.icone} ${esc(l.nome)} ▾${i.p.confianca==='baixa'?' · confiança baixa':''}</div>
       <div class="tags">${tagsEd(i)}</div>
       ${i.p.nota?`<div class="src" style="margin:10px 0 0">${esc(i.p.nota)}</div>`:''}
       ${(()=>{const u=listaUrgente();
@@ -1090,7 +1096,7 @@ function importar(){
 document.getElementById('hoje').innerHTML=
   new Date().toLocaleDateString('pt-BR',{weekday:'long'}).replace('-feira','-feira')+'<br>'+
   new Date().toLocaleDateString('pt-BR',{day:'numeric',month:'short'}).replace('.','');
-pintarListas(); pintarCaixa(); atualizarBadge(); pintarConsumo(); checarChave(); carregarClima(); retomar();
+pintarListas(); pintarCaixa(); atualizarBadge(); pintarConsumo(); document.getElementById('versao').textContent='v'+VERSAO; checarChave(); carregarClima(); retomar();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 </script>
 </body>
