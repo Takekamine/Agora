@@ -17,7 +17,7 @@
 <style>
 :root{
   --paper:#14120F; --paper-2:#241F1A;
-  --surface:rgba(255,255,255,.045); --surface-2:rgba(255,255,255,.07);
+  --surface:rgba(28,25,21,.72); --surface-2:rgba(32,28,24,.82);
   --ink:#F2EBE0; --ink-soft:#9A9086;
   --accent:#F2703F; --accent-2:#5FAE93;
   --line:rgba(242,235,224,.13);
@@ -30,7 +30,7 @@
 @media (prefers-color-scheme:light){
   :root{
     --paper:#F4EFE6; --paper-2:#EBE3D6;
-    --surface:rgba(255,255,255,.5); --surface-2:rgba(255,255,255,.62);
+    --surface:rgba(255,253,249,.78); --surface-2:rgba(255,253,249,.88);
     --ink:#1E1B17; --ink-soft:#6B6257;
     --accent:#D4522A; --accent-2:#2F5D50;
     --line:rgba(30,27,23,.12);
@@ -51,6 +51,8 @@ body{
   background-attachment:fixed;
   -webkit-user-select:none;user-select:none;
 }
+#cena{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+#cena svg{width:100%;height:100%;display:block}
 body::after{
   content:'';position:fixed;inset:0;pointer-events:none;opacity:var(--noise);z-index:99;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
@@ -167,6 +169,16 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--nav-bg);b
 .urg-item .box{width:20px;height:20px;border-radius:6px;font-size:12px}
 .urg-txt{font-size:15.5px;line-height:1.35;flex:1}
 .urg-quando{font-size:12px;color:var(--ink-soft);margin-top:2px}
+.lugar{border:1px solid var(--line);border-radius:20px;background:var(--surface);padding:16px 18px;margin-bottom:12px}
+.lugar .top-l{display:flex;align-items:baseline;gap:10px}
+.lugar .nm{font-size:17px;font-weight:700;flex:1;line-height:1.3}
+.lugar .dist{font-family:'Fraunces',serif;font-size:19px;font-weight:600;color:var(--accent);white-space:nowrap}
+.lugar .oq{font-size:13px;color:var(--ink-soft);margin-top:3px}
+.lugar .end{font-size:13.5px;color:var(--ink-soft);margin-top:9px;line-height:1.45}
+.lugar .acoes{display:flex;gap:8px;margin-top:13px}
+.lugar .acoes button{flex:1;padding:11px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer}
+.mapa{border:1.5px solid var(--accent-2);background:none;color:var(--accent-2)}
+.fui{border:1.5px solid var(--line);background:none;color:var(--ink-soft)}
 .versao{text-align:center;font-size:11px;color:var(--ink-soft);opacity:.55;letter-spacing:.12em;text-transform:uppercase;margin-top:28px;font-weight:700}
 .tag.data{background:none;border:1px solid var(--line);color:var(--ink-soft);text-transform:none;letter-spacing:.02em;font-weight:500}
 .ics{background:none;border:none;color:var(--accent-2);font-size:13px;font-weight:700;padding:6px 0 0;cursor:pointer}
@@ -202,6 +214,7 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--nav-bg);b
 </head>
 <body>
 
+<div id="cena"></div>
 <div class="app">
   <div class="top">
     <div class="brand">agora<span>.</span></div>
@@ -292,6 +305,13 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--nav-bg);b
       </div>
     </div>
     <button class="cta" onclick="sugerir()">Me dá uma sugestão →</button>
+    <button class="add" style="margin-top:12px" onclick="verLugares()">🗺️&nbsp; Um lugar pra conhecer</button>
+  </section>
+
+  <!-- LUGARES -->
+  <section class="screen" id="s-lugares">
+    <h2 class="title"><button class="back" onclick="ir('s-agora')">←</button> Lugares pra conhecer</h2>
+    <div id="lugares"></div>
   </section>
 
   <!-- RESULTADO -->
@@ -437,7 +457,8 @@ const uid=uid0;
 const hoje=()=>new Date().setHours(0,0,0,0);
 
 /* ---------------- clima ---------------- */
-let CLIMA={temp:null,chuva:false,frio:false,desc:'—',ok:false};
+let CLIMA={temp:null,chuva:false,frio:false,desc:'—',ok:false,cod:null,dia:true};
+let POS=null;
 async function carregarClima(){
   const pos=await new Promise(r=>{
     if(!navigator.geolocation) return r(null);
@@ -445,16 +466,18 @@ async function carregarClima(){
   });
   const lat=pos?pos.coords.latitude:-23.56, lon=pos?pos.coords.longitude:-46.69;
   try{
-    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,weather_code&timezone=auto`);
+    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,weather_code,is_day&timezone=auto`);
     const j=await r.json(), c=j.current;
     CLIMA={temp:Math.round(c.temperature_2m),chuva:c.precipitation>0.1||(c.weather_code>=51&&c.weather_code<=99),
-           frio:c.temperature_2m<16,ok:true,desc:descCodigo(c.weather_code)};
+           frio:c.temperature_2m<16,ok:true,desc:descCodigo(c.weather_code),
+           cod:c.weather_code,dia:c.is_day!==0};
+    POS={lat,lon};
     localStorage.setItem('agora.clima',JSON.stringify({...CLIMA,quando:Date.now()}));
   }catch(e){
     const c=JSON.parse(localStorage.getItem('agora.clima')||'null');
     if(c) CLIMA=c;
   }
-  pintarClima();
+  pintarClima(); pintarCena();
 }
 function descCodigo(w){
   if(w===0)return'Céu limpo'; if(w<=3)return'Parcialmente nublado';
@@ -462,6 +485,72 @@ function descCodigo(w){
   if(w<=67)return'Chuva'; if(w<=77)return'Neve';
   if(w<=82)return'Pancadas de chuva'; return'Tempestade';
 }
+function pintarCena(){
+  const el=document.getElementById('cena'); if(!el)return;
+  const dia=CLIMA.dia!==false, w=CLIMA.cod;
+  const chuva=CLIMA.chuva, nublado=w!==null&&w>=2&&w<=48;
+  const claro=dia?'#F5A15E':'#4A4E6B', esc=dia?'#E8DCC8':'#191826';
+  const g=chuva
+    ? (dia?['#DFDCD5','#CFCCC6','#BFBDB9']:['#14151C','#191B24','#20222C'])
+    : (dia?['#F6EBDC','#EFD9BE','#E9C9A6']:['#171622','#1E1D2E','#262437']);
+  let bg=`<defs>
+    <linearGradient id="ceu" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${g[0]}"/><stop offset="55%" stop-color="${g[1]}"/><stop offset="100%" stop-color="${g[2]}"/>
+    </linearGradient>
+    <radialGradient id="astro"><stop offset="0%" stop-color="${dia?'#FFD9A8':'#F2E5CF'}" stop-opacity=".95"/>
+      <stop offset="70%" stop-color="${claro}" stop-opacity=".35"/><stop offset="100%" stop-color="${claro}" stop-opacity="0"/></radialGradient>
+  </defs><rect width="400" height="800" fill="url(#ceu)"/>`;
+
+  // astro (some atrás das nuvens quando chove)
+  const cy=chuva?150:180;
+  if(chuva){
+    bg+=`<circle cx="300" cy="${cy}" r="120" fill="url(#astro)" opacity=".25"/>`;
+  }else{
+    bg+=`<circle cx="300" cy="${cy}" r="150" fill="url(#astro)"/>
+       <circle cx="300" cy="${cy}" r="${dia?46:34}" fill="${dia?'#FFCB8E':'#EFE3CC'}" opacity="${dia?.9:.85}"/>`;
+  }
+  if(!dia&&!chuva) bg+=`<circle cx="${292}" cy="${cy-9}" r="11" fill="${g[2]}" opacity=".35"/>
+    <circle cx="${312}" cy="${cy+11}" r="7" fill="${g[2]}" opacity=".3"/>
+    <circle cx="${306}" cy="${cy-16}" r="5" fill="${g[2]}" opacity=".28"/>`;
+
+  // estrelas
+  if(!dia){
+    for(let i=0;i<26;i++){
+      const x=Math.abs(Math.sin(i*12.9898)*43758.5)%390+5;
+      const y=Math.abs(Math.sin(i*78.233)*12345.7)%420+18;
+      const r=(i%4)?1:1.9;
+      bg+=`<circle cx="${x}" cy="${y}" r="${r}" fill="#F2EBE0" opacity="${.25+(i%4)*.14}"/>`;
+    }
+  }
+
+  // nuvens
+  if(nublado||chuva){
+    const cor=dia?'#FFFFFF':'#2E2C42', op=dia?.5:.75;
+    const nuvem=(x,y,e)=>`<g opacity="${op}" transform="translate(${x},${y}) scale(${e})">
+      <ellipse cx="0" cy="0" rx="64" ry="26" fill="${cor}"/><ellipse cx="-42" cy="8" rx="40" ry="20" fill="${cor}"/>
+      <ellipse cx="44" cy="10" rx="44" ry="21" fill="${cor}"/><ellipse cx="6" cy="-16" rx="38" ry="24" fill="${cor}"/></g>`;
+    bg+= chuva ? nuvem(130,150,1.25)+nuvem(310,210,.9)+nuvem(60,260,.8)
+               : nuvem(110,190,1)+nuvem(300,300,.72)+nuvem(40,340,.55);
+  }
+
+  // chuva
+  if(chuva){
+    for(let i=0;i<70;i++){
+      const x=(i*89)%400, y=(i*167)%520+160;
+      bg+=`<line x1="${x}" y1="${y}" x2="${x-5}" y2="${y+18}" stroke="${dia?'#8FA6B8':'#6E7FA6'}" stroke-width="1.6" opacity=".5"/>`;
+    }
+  }
+
+  // morros + reflexo
+  bg+=`<path d="M0 620 Q 80 540 170 600 Q 250 650 320 580 Q 370 540 400 570 L400 800 L0 800Z" fill="${esc}" opacity="${dia?.28:.9}"/>
+       <path d="M0 680 Q 110 620 210 665 Q 310 710 400 650 L400 800 L0 800Z" fill="${esc}" opacity="${dia?.4:1}"/>
+       <rect y="700" width="400" height="100" fill="${dia?(chuva?'#B9B6B1':'#E4D3B8'):'#12111B'}" opacity=".85"/>
+       <ellipse cx="300" cy="730" rx="${dia?60:42}" ry="10" fill="${dia?'#FFCB8E':'#EFE3CC'}" opacity=".28"/>`;
+
+  el.innerHTML=`<svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice"
+      style="opacity:${dia?.42:.58}">${bg}</svg>`;
+}
+
 function pintarClima(){
   const el=document.getElementById('clima');
   if(!CLIMA.ok&&CLIMA.temp===null){el.innerHTML='<div class="deg">—</div><div class="meta">Sem clima agora<br>As sugestões seguem funcionando</div>';return}
@@ -594,6 +683,8 @@ function pintarTarefas(){
       <div class="box" onclick="alternar('${t.id}')">✓</div>
       <div class="task-body"><div class="task-text">${esc(t.texto)}</div>
         <div class="tags">${tags(t)}</div>
+        ${t.endereco?`<div class="urg-quando" style="margin-top:7px">📍 ${esc(t.endereco)}</div>`:''}
+        ${t.endereco?`<a class="ics" style="display:inline-block;text-decoration:none" href="${linkMapa(t)}" target="_blank" onclick="event.stopPropagation()">Abrir no mapa</a>`:''}
         ${t.prazo?`<button class="ics" onclick="event.stopPropagation();paraCalendario('${t.id}')">+ Adicionar ao calendário</button>`:''}</div>
       <button class="del" onclick="apagar('${t.id}')">✕</button>
     </div>`).join('');
@@ -649,6 +740,57 @@ function tags(t){
 const esc=s=>s.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
 function alternar(id){const t=D.tarefas.find(x=>x.id===id);t.feitoEm=t.feitoEm?null:Date.now();salvar();pintarTarefas();pintarListas()}
 function apagar(id){D.tarefas=D.tarefas.filter(x=>x.id!==id);salvar();pintarTarefas();pintarListas()}
+
+/* ---------------- endereço de lugares ---------------- */
+async function buscarEndereco(item){
+  const chave=localStorage.getItem('agora.chave'); if(!chave)return;
+  const nome=item.p.texto.replace(/^conhecer\s+/i,'');
+  item.buscando=true; pintarCaixa();
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'content-type':'application/json','x-api-key':chave,
+               'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:MODELO,max_tokens:400,
+        system:`Busque o endereço deste estabelecimento. Se a cidade não estiver clara, assuma São Paulo, Brasil.
+Responda SOMENTE com JSON: {"endereco":"rua, número, bairro, cidade" ou null,"oque":"tipo do lugar" ou null}`,
+        messages:[{role:'user',content:`${nome}`}],
+        tools:[{type:'web_search_20250305',name:'web_search',max_uses:3}]})
+    });
+    if(!r.ok) throw new Error('busca falhou');
+    const j=await r.json();
+    if(j.usage) somarUso(j.usage, j.usage.server_tool_use?.web_search_requests
+        || j.content.filter(b=>b.type==='server_tool_use').length || 0);
+    const bruto=j.content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    const lim=bruto.replace(/```json|```/g,'');
+    const o=JSON.parse(lim.slice(lim.indexOf('{'),lim.lastIndexOf('}')+1));
+    if(o.endereco) item.p.endereco=o.endereco;
+    if(o.oque&&!item.p.oque) item.p.oque=o.oque;
+  }catch(e){ item.p.endereco=item.p.endereco||null; }
+  item.buscando=false; guardarCaixa(); pintarCaixa();
+}
+
+// coordenadas pelo OpenStreetMap (gratuito, sem chave)
+async function geocodificar(endereco){
+  try{
+    const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(endereco));
+    const j=await r.json();
+    if(j[0]) return {lat:+j[0].lat, lon:+j[0].lon};
+  }catch(e){}
+  return null;
+}
+
+function linkMapa(t){
+  const q=encodeURIComponent(t.endereco||t.texto);
+  return (t.lat&&t.lon)?`https://maps.apple.com/?q=${q}&ll=${t.lat},${t.lon}`:`https://maps.apple.com/?q=${q}`;
+}
+
+function distanciaKm(a,b,c,d){
+  const R=6371, r=x=>x*Math.PI/180;
+  const dLat=r(c-a), dLon=r(d-b);
+  const h=Math.sin(dLat/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLon/2)**2;
+  return R*2*Math.asin(Math.sqrt(h))*1.3;   // linha reta + 30% de margem
+}
 
 /* ---------------- calendário (.ics) ---------------- */
 function paraCalendario(id){
@@ -764,6 +906,57 @@ function mostrar(id){document.getElementById('scrim').classList.add('on');docume
 function fechar(){document.getElementById('scrim').classList.remove('on');document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('on'))}
 function aviso(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('on');setTimeout(()=>e.classList.remove('on'),1800)}
 
+/* ---------------- lugares pra conhecer ---------------- */
+async function verLugares(){
+  const el=document.getElementById('lugares');
+  el.innerHTML='<div class="empty">Vendo onde você está<span class="dots"></span></div>';
+  ir('s-lugares');
+
+  const lugares=D.tarefas.filter(t=>!t.feitoEm&&(t.lugar||t.endereco));
+  if(!lugares.length){
+    el.innerHTML='<div class="empty">Nenhum lugar anotado ainda.<br>Manda um print do Maps ou do Instagram na caixa de entrada.</div>';
+    return;
+  }
+
+  // coordenadas que faltam (lugares antigos)
+  const semCoord=lugares.filter(t=>t.endereco&&(!t.lat||!t.lon));
+  for(const t of semCoord){
+    const c=await geocodificar(t.endereco);
+    if(c){t.lat=c.lat;t.lon=c.lon}
+    await new Promise(r=>setTimeout(r,1100));   // limite do OpenStreetMap
+  }
+  if(semCoord.length) salvar();
+
+  const eu=await new Promise(r=>{
+    if(!navigator.geolocation) return r(null);
+    navigator.geolocation.getCurrentPosition(p=>r({lat:p.coords.latitude,lon:p.coords.longitude}),
+      ()=>r(POS),{enableHighAccuracy:true,timeout:8000,maximumAge:3e5});
+  })||POS;
+
+  const com=lugares.map(t=>({t,km:(eu&&t.lat&&t.lon)?distanciaKm(eu.lat,eu.lon,t.lat,t.lon):null}))
+    .sort((a,b)=>(a.km??9e9)-(b.km??9e9));
+
+  el.innerHTML=(eu?'':'<div class="aviso" style="display:block">Sem a localização agora, então não dá pra calcular distância.</div>')
+    +com.map(({t,km})=>`
+    <div class="lugar">
+      <div class="top-l">
+        <div class="nm">${esc(t.texto.replace(/^conhecer\s+/i,''))}</div>
+        ${km!=null?`<div class="dist">${km<1?Math.round(km*1000)+' m':km.toFixed(1)+' km'}</div>`:''}
+      </div>
+      ${t.oque?`<div class="oq">${esc(t.oque)}</div>`:''}
+      ${t.endereco?`<div class="end">📍 ${esc(t.endereco)}</div>`:'<div class="end">sem endereço</div>'}
+      <div class="acoes">
+        <button class="fui" onclick="jaFui('${t.id}')">Já fui</button>
+        ${t.endereco?`<button class="mapa" onclick="window.open('${linkMapa(t)}','_blank')">Abrir no mapa</button>`:''}
+      </div>
+    </div>`).join('')
+    +'<div class="urg-quando" style="text-align:center;margin-top:16px">Distância em linha reta, com 30% de margem pro trajeto real.</div>';
+}
+function jaFui(id){
+  const t=D.tarefas.find(x=>x.id===id); t.feitoEm=Date.now();
+  salvar(); pintarListas(); verLugares(); aviso('Marcado como feito');
+}
+
 /* ---------------- motor de sugestão ---------------- */
 let ultimas=[];
 function sugerir(){
@@ -843,7 +1036,7 @@ function feito(id){
 
 /* ---------------- caixa de entrada (IA) ---------------- */
 const MODELO='claude-sonnet-5';
-const VERSAO='1.3';
+const VERSAO='1.4';
 let imagemB64=null, miniB64=null, itens=JSON.parse(localStorage.getItem('agora.caixa')||'[]');
 
 function abrirChave(){
@@ -928,10 +1121,20 @@ Responda SOMENTE com JSON, sem markdown, sem crases, sem explicação:
  "prazo":"AAAA-MM-DD" ou null,
  "hora":"HH:MM" ou null,
  "confianca":"alta"|"baixa",
+ "lugar":true|false,
+ "oque":"o que é o lugar (bar, museu, parque…) ou null",
+ "endereco":"endereço completo com cidade, ou null",
  "nota":"uma frase curta sobre o que você identificou"}
 
 Se o texto trouxer dia e horário de um compromisso ("dentista quinta 14h"),
 preencha prazo e hora. Sem horário explícito, hora fica null.
+
+Se for um LUGAR (print do Google Maps, foto de restaurante, bar, museu, parque,
+loja, post do Instagram de um estabelecimento): lugar=true, texto no formato
+"Conhecer <nome do lugar>", tipo "lazer", local "rua", e preencha oque.
+Se o endereço aparecer na imagem, copie exatamente. Se não aparecer, deixe
+endereco null — a busca é feita depois. Quando a cidade não estiver clara,
+assuma São Paulo.
 
 Regras: capa de filme ou série vira "Assistir <título>"; livro vira "Ler <título>";
 artigo ou paper vira "Ler <título do artigo>" com estimativa de tempo pela extensão;
@@ -962,6 +1165,7 @@ produto vira item de compra. Se não tiver certeza do que é, use confianca "bai
     const limpo=bruto.replace(/```json|```/g,'').trim();
     item.p=JSON.parse(limpo.slice(limpo.indexOf('{'),limpo.lastIndexOf('}')+1));
     item.status='pronto'; delete item.img;   // libera espaço, mantém a miniatura
+    if(item.p.lugar&&!item.p.endereco){ guardarCaixa(); pintarCaixa(); await buscarEndereco(item); }
   }catch(err){
     item.status='erro'; item.erro=err.message;
   }
@@ -1008,6 +1212,8 @@ function pintarCaixa(){
       <div class="prop">${esc(i.p.texto)}</div>
       <div class="dest ed" onclick="picar('${i.id}','listaId')">→ ${l.icone} ${esc(l.nome)} ▾${i.p.confianca==='baixa'?' · confiança baixa':''}</div>
       <div class="tags">${tagsEd(i)}</div>
+      ${i.buscando?'<div class="src" style="margin:10px 0 0">Buscando o endereço<span class="dots"></span></div>'
+        :i.p.endereco?`<div class="src" style="margin:10px 0 0">📍 ${esc(i.p.endereco)}</div>`:''}
       ${i.p.nota?`<div class="src" style="margin:10px 0 0">${esc(i.p.nota)}</div>`:''}
       ${(()=>{const u=listaUrgente();
         return (u&&u.id!==l.id)?`<button class="atalho-urg" onclick="mandarUrgente('${i.id}')">→ Mandar para ${esc(u.icone+' '+u.nome)}</button>`:''})()}
@@ -1034,7 +1240,10 @@ function aceitar(id){
   D.tarefas.push({id:uid(),texto:p.texto,listaId:l.id,minutos:p.minutos||30,
     local:p.local||'casa',tipo:p.tipo||'tarefa',
     climaImporta:!!p.climaImporta&&p.local!=='casa',prazo:p.prazo||null,hora:p.hora||null,
+    lugar:!!p.lugar,oque:p.oque||null,endereco:p.endereco||null,lat:null,lon:null,
     criadoEm:Date.now(),feitoEm:null});
+  const nova=D.tarefas[D.tarefas.length-1];
+  if(nova.endereco) geocodificar(nova.endereco).then(c=>{if(c){nova.lat=c.lat;nova.lon=c.lon;salvar()}});
   salvar(); descartar(id); pintarListas(); aviso('Adicionado em '+l.nome);
 }
 function mandarUrgente(id){
