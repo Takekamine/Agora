@@ -442,34 +442,6 @@ nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--nav-bg);b
 <div class="toast" id="toast"></div>
 
 <script>
-/* ---------------- dados ---------------- */
-const K='agora.dados.v1';
-let D=JSON.parse(localStorage.getItem(K)||'null');
-if(!D){
-  D={listas:[
-    {id:'l1',nome:'Casa',icone:'casa',pad:{local:'casa',tipo:'tarefa'}},
-    {id:'l2',nome:'Trabalho',icone:'trabalho',pad:{local:'qualquer',tipo:'tarefa'}},
-    {id:'l3',nome:'Livros',icone:'livro',pad:{local:'casa',tipo:'lazer',minutos:60}},
-    {id:'l4',nome:'Filmes',icone:'filme',pad:{local:'casa',tipo:'lazer',minutos:120}},
-    {id:'l5',nome:'Comprar',icone:'compras',pad:{local:'rua',tipo:'tarefa',minutos:60}}
-  ],tarefas:[]};
-  salvar();
-}
-if(!D.mercado) D.mercado=[];
-if(!D.iconesMigrados){ D.listas.forEach(l=>l.icone=chaveIcone(l)); D.iconesMigrados=true; salvar0(); }
-if(!D.listas.some(l=>l.mercado)){
-  const c=D.listas.find(l=>/compra|mercado/i.test(l.nome));
-  if(c){c.mercado=true;c.nome='Supermercado';c.icone='compras'}
-  else D.listas.push({id:uid0(),nome:'Supermercado',icone:'compras',mercado:true,pad:{local:'rua',tipo:'tarefa',minutos:60}});
-  salvar0();
-}
-function salvar(){localStorage.setItem(K,JSON.stringify(D))}
-function uid0(){return Math.random().toString(36).slice(2,9)}
-function salvar0(){localStorage.setItem(K,JSON.stringify(D))}
-const uid=uid0;
-const hoje=()=>new Date().setHours(0,0,0,0);
-
-
 /* ---------------- ícones ---------------- */
 const ICONES={
   casa:'M3 10.5 12 3l9 7.5M5.5 9.5V20h13V9.5',
@@ -515,6 +487,35 @@ function chaveIcone(l){
   if(/músic|music|podcast/.test(n))return'musica';
   return'generico';
 }
+
+
+/* ---------------- dados ---------------- */
+const K='agora.dados.v1';
+let D=JSON.parse(localStorage.getItem(K)||'null');
+if(!D){
+  D={listas:[
+    {id:'l1',nome:'Casa',icone:'casa',pad:{local:'casa',tipo:'tarefa'}},
+    {id:'l2',nome:'Trabalho',icone:'trabalho',pad:{local:'qualquer',tipo:'tarefa'}},
+    {id:'l3',nome:'Livros',icone:'livro',pad:{local:'casa',tipo:'lazer',minutos:60}},
+    {id:'l4',nome:'Filmes',icone:'filme',pad:{local:'casa',tipo:'lazer',minutos:120}},
+    {id:'l5',nome:'Comprar',icone:'compras',pad:{local:'rua',tipo:'tarefa',minutos:60}}
+  ],tarefas:[]};
+  salvar();
+}
+if(!D.mercado) D.mercado=[];
+if(!D.iconesMigrados){ D.listas.forEach(l=>l.icone=chaveIcone(l)); D.iconesMigrados=true; salvar0(); }
+if(!D.listas.some(l=>l.mercado)){
+  const c=D.listas.find(l=>/compra|mercado/i.test(l.nome));
+  if(c){c.mercado=true;c.nome='Supermercado';c.icone='compras'}
+  else D.listas.push({id:uid0(),nome:'Supermercado',icone:'compras',mercado:true,pad:{local:'rua',tipo:'tarefa',minutos:60}});
+  salvar0();
+}
+function salvar(){localStorage.setItem(K,JSON.stringify(D))}
+function uid0(){return Math.random().toString(36).slice(2,9)}
+function salvar0(){localStorage.setItem(K,JSON.stringify(D))}
+const uid=uid0;
+const hoje=()=>new Date().setHours(0,0,0,0);
+
 
 /* ---------------- clima ---------------- */
 let CLIMA={temp:null,chuva:false,frio:false,desc:'—',ok:false,cod:null,dia:true};
@@ -1118,7 +1119,7 @@ function feito(id){
 
 /* ---------------- caixa de entrada (IA) ---------------- */
 const MODELO='claude-sonnet-5';
-const VERSAO='1.6';
+const VERSAO='1.7';
 let imagemB64=null, miniB64=null, itens=JSON.parse(localStorage.getItem('agora.caixa')||'[]');
 
 function abrirChave(){
